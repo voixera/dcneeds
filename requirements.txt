@@ -1,0 +1,7 @@
+discord.py
+requests
+pillow
+yt-dlp
+PyNaCl
+davey
+pypresence

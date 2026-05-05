@@ -1,0 +1,15 @@
+.env
+.env.*
+.sixth/
+__pycache__/
+*.py[cod]
+*.pyo
+cookies.txt
+keys.json
+payment_tickets.json
+log/
+relaxsounds/Jazz Music.mp3
+venv/
+.venv/
+# Secrets
+.env

@@ -1,0 +1,29 @@
+[
+    {
+        "user_id": "975269168184168539",
+        "username": "exotickic",
+        "keys": [
+            "KEY-DSZLMU",
+            "KEY-0JQGNK"
+        ],
+        "whitelisted_at": "2026-03-02T11:59:06.961730",
+        "access_started_at": "2026-03-10T16:41:28.596174",
+        "access_expires_at": null,
+        "last_updated": "2026-03-10T16:41:28.596174"
+    },
+    {
+        "user_id": "1478094546293231657",
+        "username": "rey012612",
+        "keys": [
+            "KEY-CK0Z7Z",
+            "KEY-5QAF69",
+            "KEY-3DKLRF",
+            "KEY-9M6U23",
+            "KEY-SRHECV"
+        ],
+        "whitelisted_at": "2026-03-03T01:39:41.046045",
+        "access_started_at": "2026-03-05T22:56:23.748469",
+        "access_expires_at": null,
+        "last_updated": "2026-03-05T22:56:23.748469"
+    }
+]
