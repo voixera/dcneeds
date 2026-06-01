@@ -1,6 +1,10 @@
 .env
 .env.*
+!.env.example
 .sixth/
+.next/
+node_modules/
+out/
 __pycache__/
 *.py[cod]
 *.pyo
@@ -13,3 +17,4 @@ venv/
 .venv/
 # Secrets
 .env
+!.env.example

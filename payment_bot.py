@@ -5,10 +5,12 @@ import os
 import re
 import tempfile
 from datetime import datetime
+from env_loader import load_env_file
 import discord
 from discord import app_commands
 
 
+load_env_file()
 BOT_TOKEN = os.getenv("PAYMENT_BOT_TOKEN", "").strip()
 TICKETS_FILE = "payment_tickets.json"
 PAYMENT_CATEGORY_NAME = "payment-tickets"

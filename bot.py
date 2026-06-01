@@ -6,6 +6,10 @@ import asyncio
 import json
 import os
 from datetime import datetime
+from env_loader import load_env_file
+
+
+load_env_file()
 
 class LocationInputModal(discord.ui.Modal):
     def __init__(self):

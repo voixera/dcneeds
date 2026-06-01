@@ -7,6 +7,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
+from env_loader import load_env_file
 import discord
 from discord import app_commands
 try:
@@ -15,22 +16,7 @@ except Exception:
     ZoneInfo = None
 
 
-def load_env_file(path: str = ".env") -> None:
-    if not os.path.exists(path):
-        return
-    with open(path, "r", encoding="utf-8") as f:
-        for raw_line in f:
-            line = raw_line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, value = line.split("=", 1)
-            key = key.strip()
-            value = value.strip().strip("'").strip('"')
-            if key and key not in os.environ:
-                os.environ[key] = value
-
-
-load_env_file(".env")
+load_env_file()
 
 
 WHITELIST_FILE = os.getenv("FARM_WHITELIST_FILE", "whitelist.json")

@@ -5,33 +5,22 @@ import re
 import shutil
 from dataclasses import dataclass
 from typing import Optional
-
+from env_loader import load_env_file
 import discord
 import yt_dlp
 from discord.ext import commands
 
 
-def load_env_file(path: str = ".env") -> None:
-    if not os.path.exists(path):
-        return
+load_env_file()
 
-    with open(path, "r", encoding="utf-8") as f:
-        for raw_line in f:
-            line = raw_line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, value = line.split("=", 1)
-            key = key.strip()
-            value = value.strip().strip("'").strip('"')
-            if key and key not in os.environ:
-                os.environ[key] = value
-
-
-load_env_file(".env")
-
-BOT_TOKEN = os.getenv("MUSIC_BOT_TOKEN", "").strip()
+BOT_TOKEN = (
+    os.getenv("DISCORD_MUSIC_TOKEN")
+    or os.getenv("MUSIC_BOT_TOKEN")
+    or os.getenv("DISCORD_BOT_TOKEN")
+    or ""
+).strip()
 if not BOT_TOKEN:
-    raise RuntimeError("MUSIC_BOT_TOKEN belum di-set. Set env var MUSIC_BOT_TOKEN dulu.")
+    raise RuntimeError("DISCORD_MUSIC_TOKEN belum di-set. Set DISCORD_MUSIC_TOKEN di .env dulu.")
 SEARCH_RESULT_LIMIT = 5
 CHECK_CANDIDATE_LIMIT = 3
 IDLE_TIMEOUT_SECONDS = 3000
@@ -860,8 +849,8 @@ async def on_command_error(ctx: commands.Context, error: commands.CommandError):
 def main():
     token_sources = [
         ("env DISCORD_MUSIC_TOKEN", os.getenv("DISCORD_MUSIC_TOKEN")),
+        ("env MUSIC_BOT_TOKEN", os.getenv("MUSIC_BOT_TOKEN")),
         ("env DISCORD_BOT_TOKEN", os.getenv("DISCORD_BOT_TOKEN")),
-        ("BOT_TOKEN in drxmusic.py", BOT_TOKEN),
     ]
     token = None
     token_source = None
@@ -873,13 +862,9 @@ def main():
             token_source = source_name
             break
 
-    if not token and os.path.exists("token.txt"):
-        with open("token.txt", "r", encoding="utf-8") as f:
-            token = f.read().strip() or None
-            token_source = "token.txt"
     if not token:
         raise RuntimeError(
-            "Token tidak ditemukan. Gunakan env DISCORD_MUSIC_TOKEN/DISCORD_BOT_TOKEN, atau isi BOT_TOKEN di drxmusic.py, atau buat file token.txt"
+            "Token tidak ditemukan. Set DISCORD_MUSIC_TOKEN di .env, lalu restart bot."
         )
 
     try:
@@ -887,7 +872,7 @@ def main():
     except discord.errors.LoginFailure as e:
         raise RuntimeError(
             f"Token Discord tidak valid atau sudah di-reset. Sumber token yang dipakai: {token_source}. "
-            "Perbarui token bot di `.env` (DISCORD_MUSIC_TOKEN) atau `token.txt`, lalu restart bot."
+            "Perbarui token bot di `.env` (DISCORD_MUSIC_TOKEN), lalu restart bot."
         ) from e
     except discord.errors.PrivilegedIntentsRequired as e:
         raise RuntimeError(

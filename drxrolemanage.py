@@ -1,8 +1,10 @@
 import os
+from env_loader import load_env_file
 import discord
 from discord import app_commands
 
 
+load_env_file()
 TOKEN = os.getenv("DISCORD_BOT_TOKEN", "").strip()
 
 intents = discord.Intents.default()

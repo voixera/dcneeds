@@ -6,6 +6,10 @@ import os
 from datetime import datetime, timedelta
 import random
 import string
+from env_loader import load_env_file
+
+
+load_env_file()
 
 BOT_TOKEN = os.getenv("KEY_BOT_TOKEN", "").strip()
 if not BOT_TOKEN:

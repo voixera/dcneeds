@@ -3,8 +3,12 @@ import re
 import json
 from datetime import datetime
 from io import BytesIO
+from env_loader import load_env_file
 import discord
 from discord import app_commands
+
+
+load_env_file()
 try:
     from PIL import Image, ImageDraw, ImageFont, ImageFilter
     PIL_AVAILABLE = True
@@ -907,7 +911,6 @@ async def on_ready():
 
 
 if __name__ == "__main__":
-    if TOKEN == "ISI_TOKEN_BOT_KAMU_DI_SINI":
-        print("Isi token bot dulu di variabel TOKEN atau env DISCORD_BOT_TOKEN.")
-    else:
-        client.run(TOKEN)
+    if not TOKEN:
+        raise RuntimeError("DISCORD_BOT_TOKEN belum di-set. Set DISCORD_BOT_TOKEN di .env dulu.")
+    client.run(TOKEN)
