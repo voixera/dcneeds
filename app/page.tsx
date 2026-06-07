@@ -34,7 +34,6 @@ type StatusPayload = {
 
 const botLabels: Record<string, string> = {
   bot: "Main Bot",
-  drxassistant: "Assistant",
   drxfarm: "Farm Live",
   drxmusic: "Music",
   drxrolemanage: "Role Manager",

@@ -17,7 +17,6 @@ BYPASSDELTA_DIR = BASE_DIR / "bypassdelta"
 
 PYTHON_BOT_SCRIPTS = [
     "bot.py",
-    "drxassistant.py",
     "drxfarm.py",
     "drxmusic.py",
     "drxrolemanage.py",
@@ -31,7 +30,6 @@ SERVICE_IDS = PYTHON_BOT_SCRIPTS + EXTRA_SERVICE_IDS
 
 TOKEN_REQUIREMENTS = {
     "bot.py": ("DISCORD_BOT_TOKEN",),
-    "drxassistant.py": ("DISCORD_BOT_TOKEN",),
     "drxfarm.py": ("DISCORD_FARM_TOKEN", "DISCORD_BOT_TOKEN", "DISCORD_MUSIC_TOKEN"),
     "drxmusic.py": ("DISCORD_MUSIC_TOKEN", "MUSIC_BOT_TOKEN", "DISCORD_BOT_TOKEN"),
     "drxrolemanage.py": ("DISCORD_BOT_TOKEN",),
@@ -250,7 +248,6 @@ def _build_service_command(service_id: str) -> ServiceCommand:
 
     if service_id == "bypassdelta":
         env.setdefault("NODE_ENV", "production" if os.getenv("RAILWAY_ENVIRONMENT") else "development")
-        env.setdefault("MOCK_BYPASS_API_AUTOSTART", "false")
         return ServiceCommand(
             command=[_npm_executable(), "start"],
             cwd=BYPASSDELTA_DIR,

@@ -63,7 +63,6 @@ BYPASS_API_KEY=
 BYPASS_ENABLE_MESSAGE_CONTENT=true
 BYPASS_DISABLE_DIRECT_LOOKUP=false
 AUTHORIZED_USER_IDS=
-MOCK_BYPASS_API_AUTOSTART=false
 ```
 
 `BYPASS_API_URL` biasanya berbentuk endpoint `/bypass`. Kalau tidak diisi, bot masih bisa mencoba direct lookup untuk service yang didukung kodenya, tapi command yang butuh provider API akan gagal.

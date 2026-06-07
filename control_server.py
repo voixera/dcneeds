@@ -16,7 +16,6 @@ BASE_DIR = Path(__file__).resolve().parent
 LOG_DIR = BASE_DIR / "log"
 BOT_SCRIPTS = [
     "bot.py",
-    "drxassistant.py",
     "drxfarm.py",
     "drxmusic.py",
     "drxrolemanage.py",

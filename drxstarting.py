@@ -13,7 +13,6 @@ LOG_DIR = BASE_DIR / "log"
 _LOG_LOCK = threading.Lock()
 BOT_SCRIPTS = [
     "bot.py",
-    "drxassistant.py",
     "drxfarm.py",
     "drxmusic.py",
     "drxrolemanage.py",
