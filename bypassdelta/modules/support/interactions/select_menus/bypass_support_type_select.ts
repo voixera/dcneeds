@@ -1,0 +1,129 @@
+/*
+ * Atomicals Bot for Discord
+ * Copyright (C) 2026 Atomicals LancarJaya
+ *
+ * Licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+ * You may not use this file except in compliance with the License.
+ * See the LICENSE file for more information.
+ */
+
+import { StringSelectMenuInteraction } from "discord.js"
+import { component, cache }            from "../../../utils"
+import { log_error }                   from "../../../utils/error_logger"
+
+/**
+ * - 处理绕过支持类型选择 - \\
+ * - handle bypass support type select - \\
+ * 
+ * @param {StringSelectMenuInteraction} interaction - select menu interaction
+ * @returns {Promise<void>}
+ */
+export async function handle_bypass_support_type_select(interaction: StringSelectMenuInteraction): Promise<void> {
+  let selected_type: string | undefined
+
+  try {
+    const [, interaction_id] = interaction.customId.split(":")
+    selected_type            = interaction.values[0]
+
+    // - 获取缓存的服务数据 - \\
+    // - get cached services data - \\
+    const cache_key        = `bypass_services_${interaction_id}`
+    const grouped_services = cache.get<Record<string, any[]>>(cache_key)
+
+    if (!grouped_services) {
+      const expired_message = component.build_message({
+        components: [
+          component.container({
+            components: [component.text(["Session expired. Please run the command again."])],
+          }),
+        ],
+      })
+
+      await interaction.reply({
+        ...expired_message,
+        ephemeral : true,
+      })
+      return
+    }
+
+    const type_services = grouped_services[selected_type]
+
+    if (!type_services || type_services.length === 0) {
+      const empty_message = component.build_message({
+        components: [
+          component.container({
+            components: [component.text(["No services found for this type."])],
+          }),
+        ],
+      })
+
+      await interaction.reply({
+        ...empty_message,
+        ephemeral : true,
+      })
+      return
+    }
+
+    // - 构建服务列表消息 - \\
+    // - build service list message - \\
+    const lines: string[] = [
+      `## ${selected_type}`,
+      `Total: **${type_services.length}** services`,
+    ]
+
+    for (const service of type_services) {
+      const status_icon = service.status === "active" 
+        ? "<:Green_Circle:1250450026233204797>" 
+        : "<:Red_Circle:1250450004959821877>"
+      
+      const domains = service.domains?.length > 0
+        ? service.domains.map((d: string) => `\`${d}\``).join(", ")
+        : "N/A"
+
+      lines.push(``)
+      lines.push(`**${status_icon} ${service.name}**`)
+      lines.push(`Domains: ${domains}`)
+    }
+
+    const response_message = component.build_message({
+      components: [
+        component.container({
+          components: [component.text(lines)],
+        }),
+      ],
+    })
+
+    await interaction.reply({
+      ...response_message,
+      ephemeral : true,
+    })
+
+  } catch (error: any) {
+    console.error(`[ - BYPASS SUPPORT TYPE SELECT - ] Error:`, error)
+
+    await log_error(interaction.client, error as Error, "BYPASS SUPPORT TYPE SELECT", {
+      custom_id: interaction.customId,
+      user     : interaction.user.tag,
+      channel  : interaction.channel?.id,
+      selected : selected_type || "unknown",
+    })
+
+    try {
+      const error_message = component.build_message({
+        components: [
+          component.container({
+            components: [component.text(["An error occurred while processing your request"])],
+          }),
+        ],
+      })
+
+      await interaction.reply({
+        ...error_message,
+        ephemeral : true,
+      })
+    } catch {
+      // - 忽略 - \\
+      // - ignore - \\
+    }
+  }
+}

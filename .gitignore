@@ -4,6 +4,8 @@
 .sixth/
 .next/
 node_modules/
+bypassdelta/node_modules/
+bypassdelta/.tmp/
 out/
 __pycache__/
 *.py[cod]

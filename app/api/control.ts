@@ -8,7 +8,7 @@ export function assertControlConfig() {
     return Response.json(
       {
         ok: false,
-        error: "CONTROL_API_URL dan CONTROL_API_TOKEN belum diset di environment Vercel.",
+        error: "CONTROL_API_URL dan CONTROL_API_TOKEN belum diset di environment hosting.",
       },
       { status: 500 },
     );

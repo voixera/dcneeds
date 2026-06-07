@@ -29,8 +29,17 @@ BOT_SCRIPTS = [
 load_env_file()
 
 CONTROL_API_TOKEN = (os.getenv("CONTROL_API_TOKEN") or "").strip()
-CONTROL_HOST = os.getenv("CONTROL_HOST", "127.0.0.1").strip() or "127.0.0.1"
-CONTROL_PORT = int((os.getenv("CONTROL_PORT") or "8787").strip() or "8787")
+CONTROL_HOST = (os.getenv("CONTROL_HOST") or "").strip()
+if not CONTROL_HOST:
+    CONTROL_HOST = "0.0.0.0" if os.getenv("RENDER") else "127.0.0.1"
+CONTROL_PORT = int((os.getenv("CONTROL_PORT") or os.getenv("PORT") or "8787").strip() or "8787")
+CONTROL_AUTOSTART_BOTS = (os.getenv("CONTROL_AUTOSTART_BOTS") or "").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "y",
+    "on",
+}
 
 _LOCK = threading.Lock()
 _LOG_LOCK = threading.Lock()
@@ -242,6 +251,13 @@ def main() -> int:
 
     server = ThreadingHTTPServer((CONTROL_HOST, CONTROL_PORT), ControlHandler)
     _append_log(f"Control API listening on http://{CONTROL_HOST}:{CONTROL_PORT}")
+    if CONTROL_AUTOSTART_BOTS:
+        _append_log("CONTROL_AUTOSTART_BOTS aktif, menjalankan semua bot")
+        for script_name in BOT_SCRIPTS:
+            try:
+                start_bot(script_name)
+            except Exception as exc:
+                _append_log(f"Gagal autostart {script_name}: {exc}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

@@ -1,0 +1,74 @@
+/*
+ * Atomicals Bot for Discord
+ * Copyright (C) 2026 Atomicals LancarJaya
+ *
+ * Licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+ * You may not use this file except in compliance with the License.
+ * See the LICENSE file for more information.
+ */
+
+import { ButtonInteraction } from "discord.js"
+import { db }                from "../../utils"
+
+/**
+ * @param {ButtonInteraction} interaction - button interaction
+ * @returns {Promise<void>}
+ */
+export async function handle_bypass_mobile_copy(interaction: ButtonInteraction): Promise<void> {
+  try {
+    const [, user_id, cache_id] = interaction.customId.split(":")
+
+    if (!user_id || !cache_id) {
+      await interaction.reply({
+        content   : "Invalid bypass result button. Please run the bypass command again.", ephemeral: true,
+      })
+      return
+    }
+
+    // - 验证用户授权 - \\
+    // - verify user authorization - \\
+    if (interaction.user.id !== user_id) {
+      await interaction.reply({
+        content   : "This button is not for you!", ephemeral: true,
+      })
+      return
+    }
+
+    // - 从数据库获取绕过结果 - \\
+    // - fetch bypass result from database - \\
+    const cache_key = `bypass_result_${cache_id}`
+    
+    try {
+      const result = await db.get_pool().query(
+        `SELECT url FROM bypass_cache WHERE key = $1 AND expires_at > NOW()`,
+        [cache_key]
+      )
+
+      if (!result.rows || result.rows.length === 0) {
+        await interaction.reply({
+          content   : "Bypass result has expired or not found. Please run the bypass command again.", ephemeral: true,
+        })
+        return
+      }
+
+      const bypass_key = result.rows[0].url
+
+      await interaction.reply({
+        content   : `\`${bypass_key}\``, ephemeral: true,
+      })
+
+    } catch (db_error) {
+      await interaction.reply({
+        content   : "Failed to retrieve bypass result. Please try again.", ephemeral: true,
+      })
+    }
+
+  } catch (error: any) {
+    try {
+      await interaction.reply({
+        content   : "An error occurred while processing your request", ephemeral: true,
+      })
+    } catch {
+    }
+  }
+}

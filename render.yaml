@@ -1,0 +1,49 @@
+services:
+  - type: worker
+    name: drx-discord-bots
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: python render_worker.py
+    region: singapore
+    plan: starter
+    maxShutdownDelaySeconds: 60
+    disk:
+      name: bot-data
+      mountPath: /app/data
+      sizeGB: 1
+    envVars:
+      - key: ENABLED_BOTS
+        value: all
+      - key: SKIP_MISSING_BOT_TOKENS
+        value: "true"
+      - key: RESTART_FAILED_BOTS
+        value: "true"
+      - key: RESTART_DELAY_SECONDS
+        value: "10"
+      - key: PERSISTENT_DATA_DIR
+        value: /app/data
+      - key: FFMPEG_PATH
+        value: ffmpeg
+      - key: YTDLP_COOKIE_FILE
+        value: /etc/secrets/cookies.txt
+      - key: FARM_ACTIVITY_TIMEZONE
+        value: Asia/Jakarta
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: DISCORD_MUSIC_TOKEN
+        sync: false
+      - key: DISCORD_FARM_TOKEN
+        sync: false
+      - key: DISCORD_SRVRMANAGE_TOKEN
+        sync: false
+      - key: KEY_BOT_TOKEN
+        sync: false
+      - key: PAYMENT_BOT_TOKEN
+        sync: false
+      - key: PANEL_BOT_TOKEN
+        sync: false
+      - key: BYPASS_DISCORD_TOKEN
+        sync: false
+      - key: BYPASS_CLIENT_ID
+        sync: false

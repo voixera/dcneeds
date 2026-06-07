@@ -1,0 +1,134 @@
+/*
+ * Atomicals Bot for Discord
+ * Copyright (C) 2026 Atomicals LancarJaya
+ *
+ * Licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License.
+ * You may not use this file except in compliance with the License.
+ * See the LICENSE file for more information.
+ */
+
+import {
+  ChatInputCommandInteraction,
+  SlashCommandBuilder,
+} from "discord.js"
+import { Command } from "../../shared/types/command"
+import { component, db } from "../../utils"
+import { is_authorized_user } from "../../utils/authorized_users"
+
+interface guild_settings_record {
+  guild_id  : string
+  settings? : {
+    bypass_channel? : string
+  }
+}
+
+const __max_rows        = 40
+
+/**
+ * - 查看绕过服务器命令 - \\
+ * - view bypass guild command - \\
+ */
+const view_bypass_guild_command: Command = {
+  data: new SlashCommandBuilder()
+    .setName("view-bypass-guild")
+    .setDescription("View guilds that configured bypass channel"),
+
+  execute: async (interaction: ChatInputCommandInteraction) => {
+    if (!is_authorized_user(interaction.user.id)) {
+      const denied_message = component.build_message({
+        components: [
+          component.container({
+            components: [
+              component.text([
+                "## Access Denied",
+                "",
+                "You are not allowed to use this command.",
+              ]),
+            ],
+          }),
+        ],
+      })
+
+      await interaction.reply({
+        ...denied_message,
+        ephemeral : true,
+      })
+      return
+    }
+
+    await interaction.deferReply({ ephemeral: true })
+
+    try {
+      const records = await db.find_many<guild_settings_record>("guild_settings", {})
+
+      const bypass_rows = records
+        .filter((record) => Boolean(record.settings?.bypass_channel))
+        .sort((left, right) => left.guild_id.localeCompare(right.guild_id))
+
+      if (bypass_rows.length === 0) {
+        const empty_message = component.build_message({
+          components: [
+            component.container({
+              components: [
+                component.text([
+                  "## View Bypass Guild",
+                  "",
+                  "No guild has `bypass_channel` configured yet.",
+                ]),
+              ],
+            }),
+          ],
+        })
+
+        await interaction.editReply(empty_message)
+        return
+      }
+
+      const visible_rows = bypass_rows.slice(0, __max_rows)
+      const lines = visible_rows.map((record, index) => {
+        const guild_name = interaction.client.guilds.cache.get(record.guild_id)?.name || "Unknown Guild"
+        const channel_id = record.settings?.bypass_channel || "-"
+
+        return `${index + 1}. ${guild_name} (${record.guild_id}) -> <#${channel_id}>`
+      })
+
+      const summary_message = component.build_message({
+        components: [
+          component.container({
+            components: [
+              component.text([
+                "## View Bypass Guild",
+                "",
+                `Total: ${bypass_rows.length} guild(s)`,
+                ...lines,
+                bypass_rows.length > __max_rows
+                  ? `... and ${bypass_rows.length - __max_rows} more guild(s)`
+                  : "",
+              ].filter(Boolean)),
+            ],
+          }),
+        ],
+      })
+
+      await interaction.editReply(summary_message)
+    } catch (error) {
+      const error_message = component.build_message({
+        components: [
+          component.container({
+            components: [
+              component.text([
+                "## Error",
+                "",
+                "Failed to fetch bypass guild data.",
+              ]),
+            ],
+          }),
+        ],
+      })
+
+      await interaction.editReply(error_message)
+    }
+  },
+}
+
+export default view_bypass_guild_command
