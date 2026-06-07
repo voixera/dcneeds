@@ -1,10 +1,16 @@
 import { start_bypass_bot } from "./startup/bypass_bot"
+import { start_mock_bypass_api } from "./startup/mock_bypass_api"
 
 if (process.env.NODE_ENV === "production") {
   console.log = () => {}
 }
 
 void Promise.resolve()
+  .then(async () => {
+    if ((process.env.MOCK_BYPASS_API_AUTOSTART || "true").toLowerCase() !== "false") {
+      await start_mock_bypass_api()
+    }
+  })
   .then(() => start_bypass_bot())
   .then(() => {
     console.info("[ - LAUNCHER - ] Bypass bot startup invoked")

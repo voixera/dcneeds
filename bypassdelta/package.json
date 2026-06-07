@@ -7,8 +7,10 @@
     "typecheck": "tsc -p tsconfig.json",
     "dev": "tsx index.ts",
     "dev:bypass": "tsx startup/bypass_bot.ts",
+    "dev:bypass-api": "tsx startup/mock_bypass_api.ts",
     "start": "tsx index.ts",
-    "start:bypass": "tsx startup/bypass_bot.ts"
+    "start:bypass": "tsx startup/bypass_bot.ts",
+    "start:bypass-api": "tsx startup/mock_bypass_api.ts"
   },
   "dependencies": {
     "discord.js": "^14.19.3",

@@ -58,14 +58,18 @@ Env yang dipakai:
 ```env
 BYPASS_DISCORD_TOKEN=
 BYPASS_CLIENT_ID=
-BYPASS_API_URL=
-BYPASS_API_KEY=
+BYPASS_API_URL=http://127.0.0.1:8787/bypass
+BYPASS_API_KEY=dev-local-key
 BYPASS_ENABLE_MESSAGE_CONTENT=true
 BYPASS_DISABLE_DIRECT_LOOKUP=false
 AUTHORIZED_USER_IDS=
+MOCK_BYPASS_API_AUTOSTART=true
+MOCK_BYPASS_API_KEY=dev-local-key
+MOCK_BYPASS_API_HOST=127.0.0.1
+MOCK_BYPASS_API_PORT=8787
 ```
 
-`BYPASS_API_URL` biasanya berbentuk endpoint `/bypass`. Kalau tidak diisi, bot masih bisa mencoba direct lookup untuk service yang didukung kodenya, tapi command yang butuh provider API akan gagal.
+`MOCK_BYPASS_API_*` menjalankan API lokal di container yang sama untuk mode testing. Kalau nanti memakai provider bypass asli, ganti `BYPASS_API_URL` dan `BYPASS_API_KEY`, lalu set `MOCK_BYPASS_API_AUTOSTART=false`.
 
 ## Persistent Data
 
