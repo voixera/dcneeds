@@ -13,32 +13,34 @@ function assertConfigured() {
   }
 }
 
-function normalizeSearchResult(result, index) {
-  return {
-    index: index + 1,
-    title: result.title || "Tanpa judul",
-    link: result.url || result.link,
-    snippet: result.content || result.snippet || "",
-    score: result.score || null,
-  };
-}
+function sanitizeAnswer(text) {
+  const withoutCitations = text
+    .replace(/cite[^]+/g, "")
+    .replace(/\s*\[(?:\d+|source|sumber|referensi)[^\]]*\]/gi, "");
+  const lines = withoutCitations.split(/\r?\n/);
+  const kept = [];
+  let skippingSourceBlock = false;
 
-function extractSources(message) {
-  const tools = message.executed_tools || [];
-  const results = tools.flatMap((tool) => {
-    const searchResults = tool.search_results;
-    if (Array.isArray(searchResults)) return searchResults;
-    return searchResults?.results || [];
-  });
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const normalized = trimmed.toLowerCase();
 
-  const seen = new Set();
-  return results
-    .map(normalizeSearchResult)
-    .filter((source) => {
-      if (!source.link || seen.has(source.link)) return false;
-      seen.add(source.link);
-      return true;
-    });
+    if (/^(sumber|sources?|referensi|references?)\b/.test(normalized)) {
+      skippingSourceBlock = true;
+      continue;
+    }
+
+    if (/^(catatan|notes?)\b/.test(normalized)) continue;
+
+    if (skippingSourceBlock) continue;
+
+    if (/https?:\/\//i.test(trimmed)) continue;
+
+    kept.push(line.replace(/\s{2,}/g, " ").trimEnd());
+  }
+
+  const cleaned = kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return cleaned || withoutCitations.trim();
 }
 
 async function answerWithWebSearch({ question }) {
@@ -61,7 +63,7 @@ async function answerWithWebSearch({ question }) {
         {
           role: "system",
           content:
-            "Kamu adalah asisten bot Discord untuk FIFA World Cup 2026. Gunakan web search bawaan Groq jika butuh data terbaru. Jawab dalam bahasa Indonesia yang ringkas, jelas, dan enak dibaca. Jangan mengarang. Jika sumber belum cukup, katakan data belum cukup pasti. Sertakan sitasi jika tersedia.",
+            "Kamu adalah asisten bot Discord untuk FIFA World Cup 2026. Gunakan web search bawaan Groq jika butuh data terbaru. Jawab dalam bahasa Indonesia yang ringkas, jelas, dan enak dibaca di Discord embed. Jangan mengarang. Jangan tampilkan sumber, URL, citation, footnote, blok referensi, atau catatan terpisah. Jangan pakai tabel Markdown. Gunakan bullet list pendek, bold untuk bagian penting, dan maksimal 6 item.",
         },
         {
           role: "user",
@@ -85,8 +87,7 @@ async function answerWithWebSearch({ question }) {
   }
 
   return {
-    text: content,
-    sources: extractSources(message),
+    text: sanitizeAnswer(content),
   };
 }
 

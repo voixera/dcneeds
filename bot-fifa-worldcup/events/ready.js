@@ -8,7 +8,7 @@ module.exports = {
   execute(client) {
     logger.info(`Bot login sebagai ${client.user.tag}.`);
 
-    client.user.setActivity("Piala Dunia", {
+    client.user.setActivity("Nonton Pildun Dunia😹", {
       type: ActivityType.Watching,
     });
 
