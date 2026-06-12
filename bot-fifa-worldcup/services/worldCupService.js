@@ -22,18 +22,35 @@ function sortStandings(a, b) {
   );
 }
 
+function teamMatchesQuery(team, query) {
+  const normalized = normalizeText(query);
+  const searchValues = [
+    team.id,
+    team.name,
+    team.fifaCode,
+    ...(team.aliases || []),
+  ];
+
+  return searchValues.some((value) => normalizeText(value).includes(normalized));
+}
+
+function teamMatchesExactQuery(team, query) {
+  const normalized = normalizeText(query);
+  const searchValues = [
+    team.id,
+    team.name,
+    team.fifaCode,
+    ...(team.aliases || []),
+  ];
+
+  return searchValues.some((value) => normalizeText(value) === normalized);
+}
+
 function teamMatchesFilter(db, teamQuery) {
   if (!teamQuery) return () => true;
 
-  const normalized = normalizeText(teamQuery);
   const matchingTeamIds = db.teams
-    .filter((team) => {
-      return (
-        normalizeText(team.id).includes(normalized) ||
-        normalizeText(team.name).includes(normalized) ||
-        normalizeText(team.fifaCode).includes(normalized)
-      );
-    })
+    .filter((team) => teamMatchesQuery(team, teamQuery))
     .map((team) => team.id);
 
   return (match) =>
@@ -94,25 +111,13 @@ function getGroupedStandings() {
 
 function findTeam(query) {
   const db = readDb();
-  const normalized = normalizeText(query);
-  const team = db.teams.find((item) => {
-    return (
-      normalizeText(item.id) === normalized ||
-      normalizeText(item.name) === normalized ||
-      normalizeText(item.fifaCode) === normalized
-    );
-  });
+  const team = db.teams.find((item) => teamMatchesExactQuery(item, query));
 
   if (team) return { db, team };
 
   return {
     db,
-    team: db.teams.find((item) => {
-      return (
-        normalizeText(item.name).includes(normalized) ||
-        normalizeText(item.id).includes(normalized)
-      );
-    }),
+    team: db.teams.find((item) => teamMatchesQuery(item, query)),
   };
 }
 
@@ -124,11 +129,7 @@ function searchTeams(query, limit = 25) {
     .filter((team) => {
       if (!normalized) return true;
 
-      return (
-        normalizeText(team.name).includes(normalized) ||
-        normalizeText(team.id).includes(normalized) ||
-        normalizeText(team.fifaCode).includes(normalized)
-      );
+      return teamMatchesQuery(team, query);
     })
     .slice(0, limit);
 }
