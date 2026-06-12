@@ -6,7 +6,7 @@ function createLiveEmbed({ title, color, response }) {
     .setColor(color)
     .setTitle(title)
     .setDescription(truncate(response.text, 3900))
-    .setFooter({ text: `Dijawab oleh Groq AI - ${response.model}` });
+    .setFooter({ text: "Dibuat oleh:@voixera" });
 }
 
 module.exports = {

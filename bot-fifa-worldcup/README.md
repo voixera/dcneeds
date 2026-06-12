@@ -22,15 +22,15 @@ Bot Discord.js v14 untuk jadwal, hasil, klasemen, informasi tim, prediksi skor, 
 
    Jika Railway menampilkan `DiscordAPIError[50001]: Missing Access`, cek lagi `DISCORD_FIFA_GUILD_ID`. ID itu harus ID server tempat bot sudah di-invite dengan scope `bot` dan `applications.commands`. Kosongkan `DISCORD_FIFA_GUILD_ID` untuk memakai command global.
 
-4. Untuk jawaban live dari Groq dengan web search bawaan, isi juga:
+4. Untuk jawaban live dari ChatGPT/OpenAI dengan web search bawaan, isi juga:
 
    ```env
    FIFA_LIVE_ANSWERS_ENABLED=true
-   GROQ_API_KEY=...
-   GROQ_MODEL=groq/compound-mini
+   OPENAI_API_KEY=...
+   OPENAI_MODEL=gpt-5.5
    ```
 
-   Gunakan `groq/compound-mini` atau `groq/compound` agar Groq bisa memakai web search. Kalau `GROQ_API_KEY` belum diset, command tetap memakai data lokal.
+   Kalau `OPENAI_API_KEY` belum diset, command tetap memakai data lokal.
 
 3. Jalankan bot:
 

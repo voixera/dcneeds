@@ -1,8 +1,8 @@
 const config = require("../config/env");
-const groqService = require("./groqService");
+const openaiService = require("./openaiService");
 
 function isConfigured() {
-  return config.liveAnswersEnabled && groqService.isConfigured();
+  return config.liveAnswersEnabled && openaiService.isConfigured();
 }
 
 function buildQuestion(type, params = {}) {
@@ -40,16 +40,16 @@ function buildQuestion(type, params = {}) {
 async function answer(type, params = {}) {
   if (!isConfigured()) {
     throw new Error(
-      "Live Groq belum aktif. Set GROQ_API_KEY dan gunakan model groq/compound atau groq/compound-mini.",
+      "Live ChatGPT belum aktif. Set OPENAI_API_KEY di environment.",
     );
   }
 
   const question = buildQuestion(type, params);
-  const response = await groqService.answerWithWebSearch({ question });
+  const response = await openaiService.answerWithWebSearch({ question });
 
   return {
     ...response,
-    model: config.groqModel,
+    model: config.openaiModel,
   };
 }
 

@@ -70,8 +70,9 @@ const config = {
       ),
       60,
     ) * 1000,
-  groqApiKey: process.env.GROQ_API_KEY || null,
-  groqModel: process.env.GROQ_MODEL || "groq/compound-mini",
+  openaiApiKey:
+    firstValue(process.env.OPENAI_API_KEY, process.env.CHATGPT_API_KEY) || null,
+  openaiModel: process.env.OPENAI_MODEL || "gpt-5.5",
   liveAnswersEnabled: toBoolean(process.env.FIFA_LIVE_ANSWERS_ENABLED, true),
   isDeployOnly: process.argv.includes("--deploy-only"),
 };
