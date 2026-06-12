@@ -20,6 +20,8 @@ Bot Discord.js v14 untuk jadwal, hasil, klasemen, informasi tim, prediksi skor, 
    DISCORD_FIFA_NOTIFICATION_CHANNEL_ID=...
    ```
 
+   Jika Railway menampilkan `DiscordAPIError[50001]: Missing Access`, cek lagi `DISCORD_FIFA_GUILD_ID`. ID itu harus ID server tempat bot sudah di-invite dengan scope `bot` dan `applications.commands`. Kosongkan `DISCORD_FIFA_GUILD_ID` untuk memakai command global.
+
 3. Jalankan bot:
 
    ```bash

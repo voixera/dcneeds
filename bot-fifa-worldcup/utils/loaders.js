@@ -52,17 +52,52 @@ function loadEvents(client) {
   logger.info(`${eventFiles.length} event berhasil dimuat.`);
 }
 
+function isMissingAccessError(error) {
+  return error?.code === 50001 || error?.rawError?.code === 50001;
+}
+
+async function putCommands(rest, route, body, scope) {
+  await rest.put(route, { body });
+  logger.info(`${body.length} slash command didaftarkan untuk scope ${scope}.`);
+}
+
 async function registerCommands(commands) {
   const rest = new REST({ version: "10" }).setToken(config.token);
   const body = commands.map((command) => command.data.toJSON());
-  const route = config.guildId
-    ? Routes.applicationGuildCommands(config.clientId, config.guildId)
-    : Routes.applicationCommands(config.clientId);
 
-  await rest.put(route, { body });
+  if (!config.guildId) {
+    await putCommands(
+      rest,
+      Routes.applicationCommands(config.clientId),
+      body,
+      "global",
+    );
+    return;
+  }
 
-  const scope = config.guildId ? `guild ${config.guildId}` : "global";
-  logger.info(`${body.length} slash command didaftarkan untuk scope ${scope}.`);
+  try {
+    await putCommands(
+      rest,
+      Routes.applicationGuildCommands(config.clientId, config.guildId),
+      body,
+      `guild ${config.guildId}`,
+    );
+  } catch (error) {
+    if (!isMissingAccessError(error)) {
+      throw error;
+    }
+
+    logger.warn(
+      `Tidak punya akses register command ke guild ${config.guildId}. Pastikan bot sudah di-invite ke server itu dengan scope bot dan applications.commands. Mencoba register command global.`,
+    );
+
+    await putCommands(
+      rest,
+      Routes.applicationCommands(config.clientId),
+      body,
+      "global",
+    );
+  }
 }
 
 module.exports = {
