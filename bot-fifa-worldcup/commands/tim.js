@@ -1,5 +1,8 @@
 const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
+const liveWorldCupService = require("../services/liveWorldCupService");
 const worldCupService = require("../services/worldCupService");
+const { createLiveEmbed } = require("../utils/liveEmbed");
+const logger = require("../utils/logger");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -27,10 +30,29 @@ module.exports = {
 
   async execute(interaction) {
     const query = interaction.options.getString("nama", true);
+
+    await interaction.deferReply();
+
+    if (liveWorldCupService.isConfigured()) {
+      try {
+        const response = await liveWorldCupService.answer("tim", { query });
+        const embed = createLiveEmbed({
+          title: `Info Tim: ${query}`,
+          color: 0x0f766e,
+          response,
+        });
+
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      } catch (error) {
+        logger.warn("Live answer /tim gagal, pakai data lokal.", error);
+      }
+    }
+
     const { team } = worldCupService.findTeam(query);
 
     if (!team) {
-      await interaction.reply(`Tim "${query}" tidak ditemukan.`);
+      await interaction.editReply(`Tim "${query}" tidak ditemukan.`);
       return;
     }
 
@@ -45,6 +67,6 @@ module.exports = {
         { name: "Kapten", value: team.captain || "-", inline: true },
       );
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   },
 };

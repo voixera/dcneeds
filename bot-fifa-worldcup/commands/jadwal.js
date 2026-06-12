@@ -1,7 +1,10 @@
 const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
 const config = require("../config/env");
+const liveWorldCupService = require("../services/liveWorldCupService");
 const worldCupService = require("../services/worldCupService");
 const { formatMatchLine } = require("../utils/format");
+const { createLiveEmbed } = require("../utils/liveEmbed");
+const logger = require("../utils/logger");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -38,10 +41,29 @@ module.exports = {
   async execute(interaction) {
     const team = interaction.options.getString("tim");
     const limit = interaction.options.getInteger("jumlah") || 5;
+
+    await interaction.deferReply();
+
+    if (liveWorldCupService.isConfigured()) {
+      try {
+        const response = await liveWorldCupService.answer("jadwal", { team, limit });
+        const embed = createLiveEmbed({
+          title: "Jadwal Piala Dunia",
+          color: 0x2563eb,
+          response,
+        });
+
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      } catch (error) {
+        logger.warn("Live answer /jadwal gagal, pakai data lokal.", error);
+      }
+    }
+
     const { db, matches } = worldCupService.getUpcomingMatches({ team, limit });
 
     if (matches.length === 0) {
-      await interaction.reply("Belum ada jadwal pertandingan yang cocok dengan filter tersebut.");
+      await interaction.editReply("Belum ada jadwal pertandingan yang cocok dengan filter tersebut.");
       return;
     }
 
@@ -53,6 +75,6 @@ module.exports = {
       )
       .setFooter({ text: "Gunakan Match ID dari jadwal untuk /prediksi." });
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   },
 };

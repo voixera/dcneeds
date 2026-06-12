@@ -1,7 +1,10 @@
 const { EmbedBuilder, SlashCommandBuilder } = require("discord.js");
 const config = require("../config/env");
+const liveWorldCupService = require("../services/liveWorldCupService");
 const worldCupService = require("../services/worldCupService");
 const { formatMatchLine } = require("../utils/format");
+const { createLiveEmbed } = require("../utils/liveEmbed");
+const logger = require("../utils/logger");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -38,10 +41,29 @@ module.exports = {
   async execute(interaction) {
     const team = interaction.options.getString("tim");
     const limit = interaction.options.getInteger("jumlah") || 5;
+
+    await interaction.deferReply();
+
+    if (liveWorldCupService.isConfigured()) {
+      try {
+        const response = await liveWorldCupService.answer("hasil", { team, limit });
+        const embed = createLiveEmbed({
+          title: "Hasil Terbaru Piala Dunia",
+          color: 0x16a34a,
+          response,
+        });
+
+        await interaction.editReply({ embeds: [embed] });
+        return;
+      } catch (error) {
+        logger.warn("Live answer /hasil gagal, pakai data lokal.", error);
+      }
+    }
+
     const { db, matches } = worldCupService.getLatestResults({ team, limit });
 
     if (matches.length === 0) {
-      await interaction.reply("Belum ada hasil pertandingan yang cocok dengan filter tersebut.");
+      await interaction.editReply("Belum ada hasil pertandingan yang cocok dengan filter tersebut.");
       return;
     }
 
@@ -52,6 +74,6 @@ module.exports = {
         matches.map((match) => formatMatchLine(db, match, config.timezone)).join("\n\n"),
       );
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   },
 };

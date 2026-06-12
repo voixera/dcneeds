@@ -22,6 +22,16 @@ function toInteger(value, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function toBoolean(value, fallback) {
+  if (value === undefined || value === null || String(value).trim() === "") {
+    return fallback;
+  }
+
+  return ["1", "true", "yes", "y", "on"].includes(
+    String(value).trim().toLowerCase(),
+  );
+}
+
 const token = firstValue(
   process.env.DISCORD_FIFA_TOKEN,
   process.env.DISCORD_BOT_TOKEN,
@@ -60,6 +70,9 @@ const config = {
       ),
       60,
     ) * 1000,
+  groqApiKey: process.env.GROQ_API_KEY || null,
+  groqModel: process.env.GROQ_MODEL || "groq/compound-mini",
+  liveAnswersEnabled: toBoolean(process.env.FIFA_LIVE_ANSWERS_ENABLED, true),
   isDeployOnly: process.argv.includes("--deploy-only"),
 };
 
