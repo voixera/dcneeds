@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const seedData = require("./seedData");
 
-const databasePath = path.join(__dirname, "db.json");
+const databasePath = process.env.FIFA_DB_PATH || path.join(__dirname, "db.json");
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -11,6 +11,7 @@ function clone(value) {
 function ensureDatabase() {
   if (fs.existsSync(databasePath)) return;
 
+  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
   fs.writeFileSync(databasePath, JSON.stringify(clone(seedData), null, 2));
 }
 
@@ -20,6 +21,7 @@ function readDb() {
 }
 
 function writeDb(data) {
+  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
   fs.writeFileSync(databasePath, JSON.stringify(data, null, 2));
 }
 
