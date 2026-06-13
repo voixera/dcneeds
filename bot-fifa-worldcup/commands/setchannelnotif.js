@@ -7,6 +7,12 @@ const {
 const config = require("../config/env");
 const { updateDb } = require("../database/jsonDb");
 
+function isWhitelisted(userId) {
+  return config.notificationWhitelistIds.length === 0
+    ? true
+    : config.notificationWhitelistIds.includes(userId);
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("setchannelnotif")
@@ -31,6 +37,14 @@ module.exports = {
       return;
     }
 
+    if (!isWhitelisted(interaction.user.id)) {
+      await interaction.reply({
+        content: "Kamu tidak punya akses untuk memakai command ini.",
+        ephemeral: true,
+      });
+      return;
+    }
+
     updateDb((db) => {
       db.notificationChannels ||= {};
       db.notificationChannels[interaction.guildId] = channel.id;
@@ -44,8 +58,11 @@ module.exports = {
         { name: "Server", value: interaction.guild.name, inline: true },
         { name: "Channel", value: `${channel}`, inline: true },
         {
-          name: "Fallback",
-          value: config.notificationChannelId ? "Masih ada channel default di env." : "-",
+          name: "Akses",
+          value:
+            config.notificationWhitelistIds.length > 0
+              ? "Whitelist aktif"
+              : "Whitelist tidak diatur",
           inline: true,
         },
       );

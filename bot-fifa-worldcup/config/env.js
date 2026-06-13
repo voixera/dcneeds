@@ -32,6 +32,14 @@ function toBoolean(value, fallback) {
   );
 }
 
+function toStringList(value) {
+  if (!value) return [];
+  return String(value)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 const token = firstValue(
   process.env.DISCORD_FIFA_TOKEN,
   process.env.DISCORD_BOT_TOKEN,
@@ -52,6 +60,12 @@ const config = {
       process.env.DISCORD_FIFA_NOTIFICATION_CHANNEL_ID,
       process.env.NOTIFICATION_CHANNEL_ID,
     ) || null,
+  notificationWhitelistIds: toStringList(
+    firstValue(
+      process.env.DISCORD_FIFA_NOTIFICATION_WHITELIST_IDS,
+      process.env.NOTIFICATION_WHITELIST_IDS,
+    ),
+  ),
   timezone:
     firstValue(process.env.DISCORD_FIFA_TIMEZONE, process.env.TIMEZONE) ||
     "Asia/Jakarta",

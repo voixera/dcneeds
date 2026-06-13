@@ -11,11 +11,7 @@ function getConfiguredChannelId() {
     return db.notificationChannels[config.guildId];
   }
 
-  const firstConfiguredChannel = Object.values(db.notificationChannels || {}).find(
-    Boolean,
-  );
-
-  return firstConfiguredChannel || config.notificationChannelId || null;
+  return null;
 }
 
 async function getNotificationChannel(client) {
@@ -122,7 +118,7 @@ function startNotificationService(client) {
   const configuredChannelId = getConfiguredChannelId();
 
   if (!configuredChannelId) {
-    logger.warn("NOTIFICATION_CHANNEL_ID belum diisi. Notifikasi dinonaktifkan.");
+    logger.warn("Channel notifikasi belum diset. Notifikasi dinonaktifkan.");
     return;
   }
 
