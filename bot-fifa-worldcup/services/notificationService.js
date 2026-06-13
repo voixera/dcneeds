@@ -5,10 +5,25 @@ const { getMatchesStartingSoon, getFinishedMatches } = require("./worldCupServic
 const { formatDateTime, formatMatchTitle } = require("../utils/format");
 const logger = require("../utils/logger");
 
-async function getNotificationChannel(client) {
-  if (!config.notificationChannelId) return null;
+function getConfiguredChannelId() {
+  const db = readDb();
+  if (config.guildId && db.notificationChannels?.[config.guildId]) {
+    return db.notificationChannels[config.guildId];
+  }
 
-  const channel = await client.channels.fetch(config.notificationChannelId);
+  const firstConfiguredChannel = Object.values(db.notificationChannels || {}).find(
+    Boolean,
+  );
+
+  return firstConfiguredChannel || config.notificationChannelId || null;
+}
+
+async function getNotificationChannel(client) {
+  const configuredChannelId = getConfiguredChannelId();
+
+  if (!configuredChannelId) return null;
+
+  const channel = await client.channels.fetch(configuredChannelId);
   if (!channel || !channel.isTextBased()) return null;
 
   return channel;
@@ -104,7 +119,9 @@ async function runNotificationSweep(client) {
 }
 
 function startNotificationService(client) {
-  if (!config.notificationChannelId) {
+  const configuredChannelId = getConfiguredChannelId();
+
+  if (!configuredChannelId) {
     logger.warn("NOTIFICATION_CHANNEL_ID belum diisi. Notifikasi dinonaktifkan.");
     return;
   }
@@ -123,6 +140,7 @@ function startNotificationService(client) {
 }
 
 module.exports = {
+  getNotificationChannel,
   runNotificationSweep,
   startNotificationService,
 };

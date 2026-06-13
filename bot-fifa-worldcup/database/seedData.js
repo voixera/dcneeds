@@ -590,4 +590,5 @@ module.exports = {
     matchReminders: [],
     resultNotifications: [],
   },
+  notificationChannels: {},
 };

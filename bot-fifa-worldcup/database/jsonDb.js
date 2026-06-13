@@ -35,11 +35,20 @@ function ensureDatabase() {
   }
 
   const existingData = JSON.parse(fs.readFileSync(databasePath, "utf8"));
-  if (existingData.metadata?.version === seedData.metadata.version) return;
+  if (existingData.metadata?.version === seedData.metadata.version) {
+    if (!existingData.notificationChannels) {
+      existingData.notificationChannels = {};
+      writeDb(existingData);
+    }
+    return;
+  }
 
   const unchangedMatchIds = getUnchangedMatchIds(existingData);
   const migratedData = {
     ...clone(seedData),
+    notificationChannels: {
+      ...(existingData.notificationChannels || {}),
+    },
     predictions: (existingData.predictions || []).filter((prediction) =>
       unchangedMatchIds.has(prediction.matchId),
     ),
