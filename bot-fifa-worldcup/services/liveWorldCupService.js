@@ -31,7 +31,7 @@ function buildQuestion(type, params = {}) {
   }
 
   if (type === "tim") {
-    return `Berikan informasi tim nasional ${team} di Piala Dunia 2026: grup, lawan, jadwal, pemain/pelatih penting jika tersedia, dan ringkasan singkat. ${style}`;
+    return `Berikan informasi tim nasional ${team} di Piala Dunia 2026: grup, pelatih kepala saat ini, kapten saat ini, lawan, jadwal, dan ringkasan singkat. Jika ada data yang belum pasti, tulis "belum pasti" daripada mengarang. ${style}`;
   }
 
   return `Jawab tentang Piala Dunia 2026: ${team || group}. ${style}`;
