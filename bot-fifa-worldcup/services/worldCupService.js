@@ -131,6 +131,7 @@ function searchTeams(query, limit = 25) {
 
       return teamMatchesQuery(team, query);
     })
+    .sort((a, b) => a.name.localeCompare(b.name))
     .slice(0, limit);
 }
 

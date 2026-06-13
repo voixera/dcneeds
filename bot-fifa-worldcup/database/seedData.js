@@ -412,8 +412,8 @@ const teamsByGroup = {
 const teams = Object.entries(teamsByGroup).flatMap(([group, groupTeams]) =>
   groupTeams.map((team) => ({
     group,
-    coach: "Belum diatur",
-    captain: "Belum diatur",
+    coach: `Pelatih ${team.name}`,
+    captain: `Kapten ${team.name}`,
     ...team,
   })),
 );

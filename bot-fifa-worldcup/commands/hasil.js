@@ -31,10 +31,12 @@ module.exports = {
     const teams = worldCupService.searchTeams(focused);
 
     await interaction.respond(
-      teams.map((team) => ({
-        name: `${team.name} (${team.fifaCode})`,
-        value: team.name,
-      })),
+      teams
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((team) => ({
+          name: `${team.name} (${team.fifaCode})`,
+          value: team.name,
+        })),
     );
   },
 
