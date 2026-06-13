@@ -8,8 +8,14 @@ module.exports = {
   execute(client) {
     logger.info(`Bot login sebagai ${client.user.tag}.`);
 
-    client.user.setActivity("Nonton Pildun Dunia😹", {
-      type: ActivityType.Watching,
+    client.user.setPresence({
+      status: "dnd",
+      activities: [
+        {
+          name: "Nonton Pildun Dunia😹",
+          type: ActivityType.Watching,
+        },
+      ],
     });
 
     startNotificationService(client);
