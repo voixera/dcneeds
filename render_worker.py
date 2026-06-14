@@ -15,6 +15,7 @@ BASE_DIR = Path(__file__).resolve().parent
 LOG_DIR = BASE_DIR / "log"
 BYPASSDELTA_DIR = BASE_DIR / "bypassdelta"
 FIFA_WORLDCUP_DIR = BASE_DIR / "bot-fifa-worldcup"
+OAUTH_GUARD_DIR = BASE_DIR / "discord-oauth-guard"
 
 PYTHON_BOT_SCRIPTS = [
     "bot.py",
@@ -26,7 +27,7 @@ PYTHON_BOT_SCRIPTS = [
     "payment_bot.py",
     "script_panel.py",
 ]
-EXTRA_SERVICE_IDS = ["bypassdelta", "bot-fifa-worldcup"]
+EXTRA_SERVICE_IDS = ["bypassdelta", "bot-fifa-worldcup", "discord-oauth-guard"]
 SERVICE_IDS = PYTHON_BOT_SCRIPTS + EXTRA_SERVICE_IDS
 
 TOKEN_REQUIREMENTS = {
@@ -40,6 +41,7 @@ TOKEN_REQUIREMENTS = {
     "script_panel.py": ("PANEL_BOT_TOKEN",),
     "bypassdelta": ("BYPASS_DISCORD_TOKEN",),
     "bot-fifa-worldcup": ("DISCORD_FIFA_TOKEN", "DISCORD_BOT_TOKEN"),
+    "discord-oauth-guard": ("DISCORD_TOKEN",),
 }
 
 DATA_FILE_DEFAULTS = {
@@ -122,6 +124,8 @@ def _service_from_token(value: str) -> str | None:
         return "bypassdelta"
     if lowered in {"fifa", "worldcup", "world-cup", "bot-fifa", "bot-fifa-worldcup"}:
         return "bot-fifa-worldcup"
+    if lowered in {"oauth", "oauth-guard", "discord-oauth", "discord-oauth-guard", "guard"}:
+        return "discord-oauth-guard"
 
     for script_name in PYTHON_BOT_SCRIPTS:
         if lowered in {script_name.lower(), _bot_id(script_name).lower()}:
@@ -272,6 +276,14 @@ def _build_service_command(service_id: str) -> ServiceCommand:
             env=env,
         )
 
+    if service_id == "discord-oauth-guard":
+        env.setdefault("NODE_ENV", "production" if os.getenv("RAILWAY_ENVIRONMENT") else "development")
+        return ServiceCommand(
+            command=[_npm_executable(), "start"],
+            cwd=OAUTH_GUARD_DIR,
+            env=env,
+        )
+
     raise ValueError(f"Service tidak dikenal: {service_id}")
 
 
@@ -282,6 +294,8 @@ def _service_exists(service_id: str) -> bool:
         return (BYPASSDELTA_DIR / "package.json").exists()
     if service_id == "bot-fifa-worldcup":
         return (FIFA_WORLDCUP_DIR / "package.json").exists()
+    if service_id == "discord-oauth-guard":
+        return (OAUTH_GUARD_DIR / "package.json").exists()
     return False
 
 

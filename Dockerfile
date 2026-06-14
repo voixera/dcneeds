@@ -9,11 +9,13 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
+        curl \
         ffmpeg \
+        gnupg \
         libopus0 \
         libsodium23 \
-        nodejs \
-        npm \
+    && curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -24,6 +26,9 @@ RUN cd bypassdelta && npm ci
 
 COPY bot-fifa-worldcup/package*.json ./bot-fifa-worldcup/
 RUN cd bot-fifa-worldcup && npm ci
+
+COPY discord-oauth-guard/package*.json ./discord-oauth-guard/
+RUN cd discord-oauth-guard && npm ci
 
 COPY . .
 
