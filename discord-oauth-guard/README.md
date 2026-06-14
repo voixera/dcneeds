@@ -235,6 +235,11 @@ Jika bot dikeluarkan, disconnect, atau dipindahkan dari voice channel tersimpan,
 - Jika terlalu banyak false positive, naikkan `MALICIOUS_THRESHOLD`, turunkan bobot di `src/config/defaultConfig.js`, atau hapus keyword yang terlalu umum.
 - Jika scam image sering lolos karena crop/resize kecil, naikkan `IMAGE_SIMILARITY_DISTANCE` secara bertahap.
 
+## Link Bot
+
+`https://discord.com/oauth2/authorize?client_id=1515563827301847111&permissions=8&integration_type=0&scope=bot`
+
+
 ## Struktur
 
 ```text
