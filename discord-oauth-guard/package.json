@@ -1,0 +1,37 @@
+{
+  "name": "discord-oauth-guard",
+  "version": "1.0.0",
+  "description": "Discord bot to detect scam OAuth spam, fake giveaways, fake Nitro, fake crypto rewards, and repeated scam images.",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "deploy:commands": "node src/deploy-commands.js",
+    "db:init": "node src/database/initDatabase.js",
+    "check": "node scripts/check-syntax.js"
+  },
+  "keywords": [
+    "discord",
+    "discordjs",
+    "moderation",
+    "oauth",
+    "scam-detection",
+    "ocr",
+    "sqlite"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@discordjs/rest": "^2.4.2",
+    "discord-api-types": "^0.37.119",
+    "discord.js": "^14.19.3",
+    "dotenv": "^16.5.0",
+    "sharp": "^0.34.2",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^6.0.1",
+    "tesseract.js": "^6.0.1"
+  }
+}
