@@ -51,5 +51,10 @@ module.exports = {
   },
   accounts: {
     veryNewMs: env.newAccountDays * day
+  },
+  voice: {
+    channelId: null,
+    notifyChannelId: env.voiceNotifyChannelId,
+    reconnectDelayMs: env.voiceReconnectDelayMs
   }
 };

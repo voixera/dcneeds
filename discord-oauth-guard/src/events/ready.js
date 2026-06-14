@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 module.exports = {
   name: 'ready',
   once: true,
-  async execute(client) {
+  async execute(client, context) {
     client.user.setPresence({
       status: 'dnd',
       activities: [
@@ -15,6 +15,7 @@ module.exports = {
       ]
     });
 
+    await context.voiceGuardService.restoreConfiguredConnections();
     logger.info(`Logged in as ${client.user.tag}`);
   }
 };

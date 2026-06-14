@@ -11,7 +11,8 @@ const configurableKeys = [
   'imageSimilarityDistance',
   'spamAttachmentThreshold',
   'spamChannelThreshold',
-  'massMentionThreshold'
+  'massMentionThreshold',
+  'voiceReconnectDelayMs'
 ];
 
 function addKeyChoices(option) {
@@ -72,6 +73,7 @@ module.exports = {
         { name: 'Message Actions', value: `Delete malicious: ${config.moderation.deleteMaliciousMessages}\nWarn cleanup: ${msToHuman(config.moderation.warningDeleteAfterMs)}`, inline: true },
         { name: 'Image Hash', value: `Similarity distance: ${config.images.similarityDistance}`, inline: true },
         { name: 'Spam Window', value: `Attachments: ${config.spam.attachmentThreshold}\nChannels: ${config.spam.channelThreshold}\nMass mentions: ${config.spam.massMentionThreshold}`, inline: true },
+        { name: 'Voice Guard', value: `Voice: ${config.voice.channelId ? `<#${config.voice.channelId}>` : 'Not set'}\nNotify: ${config.voice.notifyChannelId ? `<#${config.voice.notifyChannelId}>` : 'Not set'}\nReconnect: ${config.voice.reconnectDelayMs}ms`, inline: false },
         { name: 'Keywords', value: `${config.scamKeywords.length} active keyword(s)`, inline: true }
       )
       .setTimestamp();

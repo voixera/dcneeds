@@ -50,6 +50,12 @@ class ConfigService {
         attachmentThreshold: toInt(overrides.spamAttachmentThreshold, defaultConfig.spam.attachmentThreshold),
         channelThreshold: toInt(overrides.spamChannelThreshold, defaultConfig.spam.channelThreshold),
         massMentionThreshold: toInt(overrides.massMentionThreshold, defaultConfig.spam.massMentionThreshold)
+      },
+      voice: {
+        ...defaultConfig.voice,
+        channelId: overrides.voiceChannelId || defaultConfig.voice.channelId,
+        notifyChannelId: overrides.voiceNotifyChannelId || defaultConfig.voice.notifyChannelId,
+        reconnectDelayMs: toInt(overrides.voiceReconnectDelayMs, defaultConfig.voice.reconnectDelayMs)
       }
     };
   }

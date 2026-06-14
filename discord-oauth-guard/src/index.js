@@ -10,6 +10,7 @@ const RiskEngine = require('./services/riskEngine');
 const LogChannelService = require('./services/logChannelService');
 const ModerationService = require('./services/moderationService');
 const ScanService = require('./services/scanService');
+const VoiceGuardService = require('./services/voiceGuardService');
 const { loadCommands, loadEvents } = require('./utils/loaders');
 const logger = require('./utils/logger');
 
@@ -24,7 +25,8 @@ async function main() {
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.MessageContent,
       GatewayIntentBits.GuildMembers,
-      GatewayIntentBits.GuildModeration
+      GatewayIntentBits.GuildModeration,
+      GatewayIntentBits.GuildVoiceStates
     ],
     partials: [Partials.Channel, Partials.Message]
   });
@@ -37,6 +39,7 @@ async function main() {
   const spamPatternService = new SpamPatternService(database);
   const riskEngine = new RiskEngine();
   const logChannelService = new LogChannelService(client);
+  const voiceGuardService = new VoiceGuardService({ client, configService, logChannelService });
   const moderationService = new ModerationService({ database, logChannelService });
   const scanService = new ScanService({
     database,
@@ -61,6 +64,7 @@ async function main() {
     spamPatternService,
     riskEngine,
     logChannelService,
+    voiceGuardService,
     moderationService,
     scanService
   };

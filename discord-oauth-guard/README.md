@@ -30,6 +30,7 @@ Bot ini tidak bisa membaca daftar OAuth app yang pernah diotorisasi user. Fokusn
   - `/scamconfig`
   - `/scamhash`
   - `/scamscan`
+  - `/joinvoice`
 
 ## Requirements
 
@@ -41,6 +42,8 @@ Bot ini tidak bisa membaca daftar OAuth app yang pernah diotorisasi user. Fokusn
   - Read Message History
   - Manage Messages
   - Moderate Members
+  - Connect
+  - View Audit Log, opsional untuk menampilkan siapa yang disconnect atau move bot dari voice
   - Manage Channels, opsional untuk membuat log channel otomatis
 - Gateway intents di Developer Portal:
   - Server Members Intent
@@ -93,6 +96,7 @@ SPAM_WINDOW_SECONDS=120
 SPAM_ATTACHMENT_THRESHOLD=4
 SPAM_CHANNEL_THRESHOLD=3
 MASS_MENTION_THRESHOLD=5
+VOICE_RECONNECT_DELAY_MS=5000
 ```
 
 Keyword default ada di:
@@ -170,6 +174,7 @@ Key yang tersedia:
 - `spamAttachmentThreshold`
 - `spamChannelThreshold`
 - `massMentionThreshold`
+- `voiceReconnectDelayMs`
 
 ### `/scamhash`
 
@@ -179,10 +184,26 @@ Melihat hash gambar terbaru atau menghapus hash tertentu.
 
 Scan manual teks atau gambar tanpa melakukan moderasi otomatis dan tanpa menyimpan hash baru.
 
+### `/joinvoice`
+
+Menjaga bot tetap berada di voice channel dengan self mute dan self deafen.
+
+```text
+/joinvoice join
+/joinvoice join channel:#voice
+/joinvoice notify channel:#mod-log
+/joinvoice setchannel channel:#mod-log
+/joinvoice status
+/joinvoice leave
+```
+
+Jika bot dikeluarkan, disconnect, atau dipindahkan dari voice channel tersimpan, bot akan mengirim embed notif ke channel yang diatur dengan `/joinvoice notify` atau `/joinvoice setchannel`. Bot juga akan mencoba rejoin otomatis ke voice channel tersimpan. Jika bot punya permission `View Audit Log`, notif akan mencoba menampilkan executor yang melakukan disconnect atau move.
+
 ## Production Notes
 
 - Jalankan bot dengan process manager seperti `pm2`, Docker, systemd, atau platform hosting Node.
 - Pastikan role bot berada di atas role member yang ingin bisa di-timeout.
+- Untuk voice guard, pastikan bot punya permission `Connect` ke voice channel dan `View Audit Log` jika ingin notif menyebut executor.
 - Tesseract OCR bisa berat untuk server kecil. Atur `IMAGE_MAX_BYTES` dan `OCR_TIMEOUT_MS`.
 - Jika terlalu banyak false positive, naikkan `MALICIOUS_THRESHOLD`, turunkan bobot di `src/config/defaultConfig.js`, atau hapus keyword yang terlalu umum.
 - Jika scam image sering lolos karena crop/resize kecil, naikkan `IMAGE_SIMILARITY_DISTANCE` secara bertahap.

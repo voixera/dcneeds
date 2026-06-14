@@ -41,5 +41,7 @@ module.exports = {
   spamWindowSeconds: toInt(process.env.SPAM_WINDOW_SECONDS, 120),
   spamAttachmentThreshold: toInt(process.env.SPAM_ATTACHMENT_THRESHOLD, 4),
   spamChannelThreshold: toInt(process.env.SPAM_CHANNEL_THRESHOLD, 3),
-  massMentionThreshold: toInt(process.env.MASS_MENTION_THRESHOLD, 5)
+  massMentionThreshold: toInt(process.env.MASS_MENTION_THRESHOLD, 5),
+  voiceNotifyChannelId: process.env.VOICE_NOTIFY_CHANNEL_ID || null,
+  voiceReconnectDelayMs: toInt(process.env.VOICE_RECONNECT_DELAY_MS, 5000)
 };
