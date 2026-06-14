@@ -12,6 +12,7 @@
     "dev": "node --watch src/index.js",
     "deploy:commands": "node src/deploy-commands.js",
     "db:init": "node src/database/initDatabase.js",
+    "railway:vars": "powershell -ExecutionPolicy Bypass -File scripts/set-railway-vars.ps1",
     "check": "node scripts/check-syntax.js"
   },
   "keywords": [

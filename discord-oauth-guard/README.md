@@ -83,6 +83,34 @@ Jalankan bot:
 npm start
 ```
 
+## Railway Variables
+
+Jika Railway CLI sudah login dan service sudah linked, isi semua variables Railway dengan placeholder:
+
+```powershell
+npm run railway:vars
+```
+
+Untuk service atau environment tertentu:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/set-railway-vars.ps1 -Service "discord-oauth-guard" -Environment "production"
+```
+
+Script memakai `--skip-deploys`, jadi placeholder tidak langsung memicu redeploy. Setelah selesai, edit nilai rahasia di Railway:
+
+- `DISCORD_TOKEN`
+- `CLIENT_ID`
+- `GUILD_ID`
+- `MOD_LOG_CHANNEL_ID`, opsional
+- `VOICE_NOTIFY_CHANNEL_ID`, opsional
+
+Jika Railway CLI belum login:
+
+```bash
+npx @railway/cli login
+```
+
 ## Konfigurasi Penting
 
 Default ada di `.env.example` dan `src/config/defaultConfig.js`.
