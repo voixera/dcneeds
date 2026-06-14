@@ -46,7 +46,6 @@ Bot ini tidak bisa membaca daftar OAuth app yang pernah diotorisasi user. Fokusn
   - View Audit Log, opsional untuk menampilkan siapa yang disconnect atau move bot dari voice
   - Manage Channels, opsional untuk membuat log channel otomatis
 - Gateway intents di Developer Portal:
-  - Server Members Intent
   - Message Content Intent
 
 ## Instalasi
