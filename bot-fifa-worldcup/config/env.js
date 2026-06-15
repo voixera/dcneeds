@@ -40,6 +40,10 @@ function toStringList(value) {
     .filter(Boolean);
 }
 
+function uniqueStringList(values) {
+  return [...new Set(values.filter((value) => value && String(value).trim()))];
+}
+
 const token = firstValue(
   process.env.DISCORD_FIFA_TOKEN,
   process.env.DISCORD_BOT_TOKEN,
@@ -50,6 +54,13 @@ const clientId = firstValue(
   process.env.CLIENT_ID,
   decodeClientIdFromToken(token),
 );
+const openaiApiKeys = uniqueStringList([
+  ...toStringList(process.env.OPENAI_API_KEYS),
+  process.env.OPENAI_API_KEY,
+  process.env.CHATGPT_API_KEY,
+  process.env.OPENAI_API_KEY_FALLBACK,
+  process.env.OPENAI_API_KEY_2,
+]);
 
 const config = {
   token,
@@ -84,8 +95,8 @@ const config = {
       ),
       60,
     ) * 1000,
-  openaiApiKey:
-    firstValue(process.env.OPENAI_API_KEY, process.env.CHATGPT_API_KEY) || null,
+  openaiApiKey: openaiApiKeys[0] || null,
+  openaiApiKeys,
   openaiModel: process.env.OPENAI_MODEL || "gpt-5.5",
   liveAnswersEnabled: toBoolean(process.env.FIFA_LIVE_ANSWERS_ENABLED, true),
   isDeployOnly: process.argv.includes("--deploy-only"),

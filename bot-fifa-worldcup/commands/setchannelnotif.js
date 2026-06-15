@@ -1,6 +1,7 @@
 const {
   ChannelType,
   EmbedBuilder,
+  MessageFlags,
   PermissionFlagsBits,
   SlashCommandBuilder,
 } = require("discord.js");
@@ -32,7 +33,7 @@ module.exports = {
     if (!interaction.guildId) {
       await interaction.reply({
         content: "Command ini hanya bisa dipakai di server.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -40,7 +41,7 @@ module.exports = {
     if (!isWhitelisted(interaction.user.id)) {
       await interaction.reply({
         content: "Kamu tidak punya akses untuk memakai command ini.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -67,6 +68,6 @@ module.exports = {
         },
       );
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
   },
 };
