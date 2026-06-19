@@ -24,9 +24,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY bypassdelta/package*.json ./bypassdelta/
 RUN cd bypassdelta && npm ci
 
-COPY bot-fifa-worldcup/package*.json ./bot-fifa-worldcup/
-RUN cd bot-fifa-worldcup && npm ci
-
 COPY discord-oauth-guard/package*.json ./discord-oauth-guard/
 RUN cd discord-oauth-guard && npm ci
 

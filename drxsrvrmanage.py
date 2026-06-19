@@ -20,6 +20,7 @@ TOKEN = (
 
 CONFIG_FILE = Path(os.getenv("SRVRMANAGE_CONFIG_FILE") or "srvrmanage_config.json")
 EMBED_COLOR = discord.Color.from_rgb(32, 34, 37)
+TEMP_VOICE_CHANNEL_IDS_KEY = "temp_voice_channel_ids"
 
 
 def _safe_int(value) -> Optional[int]:
@@ -67,6 +68,47 @@ def set_log_channel_id(guild_id: int, channel_id: Optional[int]) -> None:
     save_config(data)
 
 
+def get_temp_voice_channel_ids(guild_id: int) -> set[int]:
+    data = load_config()
+    cfg = data.get(str(guild_id))
+    if not isinstance(cfg, dict):
+        return set()
+    raw_ids = cfg.get(TEMP_VOICE_CHANNEL_IDS_KEY, [])
+    if not isinstance(raw_ids, list):
+        return set()
+    return {channel_id for channel_id in (_safe_int(value) for value in raw_ids) if channel_id is not None}
+
+
+def set_temp_voice_channel_ids(guild_id: int, channel_ids: set[int]) -> None:
+    data = load_config()
+    key = str(guild_id)
+    cfg = data.get(key)
+    if not isinstance(cfg, dict):
+        cfg = {}
+        data[key] = cfg
+    if channel_ids:
+        cfg[TEMP_VOICE_CHANNEL_IDS_KEY] = sorted(channel_ids)
+    else:
+        cfg.pop(TEMP_VOICE_CHANNEL_IDS_KEY, None)
+    save_config(data)
+
+
+def add_temp_voice_channel_id(guild_id: int, channel_id: int) -> None:
+    channel_ids = get_temp_voice_channel_ids(guild_id)
+    channel_ids.add(int(channel_id))
+    set_temp_voice_channel_ids(guild_id, channel_ids)
+
+
+def remove_temp_voice_channel_id(guild_id: int, channel_id: int) -> None:
+    channel_ids = get_temp_voice_channel_ids(guild_id)
+    channel_ids.discard(int(channel_id))
+    set_temp_voice_channel_ids(guild_id, channel_ids)
+
+
+def is_temp_voice_channel(guild_id: int, channel_id: int) -> bool:
+    return int(channel_id) in get_temp_voice_channel_ids(guild_id)
+
+
 async def send_log(guild: discord.Guild, embed: discord.Embed) -> None:
     channel_id = get_log_channel_id(guild.id)
     if not channel_id:
@@ -95,6 +137,10 @@ def build_embed(title: str, description: str) -> discord.Embed:
     embed = discord.Embed(description=description, color=EMBED_COLOR)
     embed.set_author(name=title)
     return embed
+
+
+def has_human_members(channel: discord.VoiceChannel) -> bool:
+    return any(not member.bot for member in channel.members)
 
 
 class ConfirmView(discord.ui.View):
@@ -150,10 +196,45 @@ def can_bot_manage_role(guild: discord.Guild, role: discord.Role) -> bool:
 intents = discord.Intents.default()
 intents.guilds = True
 intents.members = True
+intents.voice_states = True
 intents.message_content = False
 
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
+
+
+async def delete_empty_temp_voice_channel(channel: discord.VoiceChannel, reason: str) -> bool:
+    if not is_temp_voice_channel(channel.guild.id, channel.id):
+        return False
+    if has_human_members(channel):
+        return False
+
+    channel_name = channel.name
+    voice_client = discord.utils.get(client.voice_clients, guild=channel.guild)
+    if voice_client is not None and getattr(getattr(voice_client, "channel", None), "id", None) == channel.id:
+        try:
+            await voice_client.disconnect(force=True)
+        except Exception:
+            pass
+
+    try:
+        await channel.delete(reason=reason)
+    except discord.NotFound:
+        remove_temp_voice_channel_id(channel.guild.id, channel.id)
+        return True
+    except discord.Forbidden:
+        print(f"[drxsrvrmanage] Tidak bisa hapus voice sementara #{channel_name}: missing Manage Channels")
+        return False
+    except Exception as exc:
+        print(f"[drxsrvrmanage] Gagal hapus voice sementara #{channel_name}: {exc}")
+        return False
+
+    remove_temp_voice_channel_id(channel.guild.id, channel.id)
+    await send_log(
+        channel.guild,
+        build_embed("LOG: Voice Auto Delete", f"Voice sementara `{channel_name}` dihapus karena kosong."),
+    )
+    return True
 
 
 @tree.command(name="srv_help", description="List fitur server manager")
@@ -165,6 +246,7 @@ async def srv_help(interaction: discord.Interaction) -> None:
                 "**Info**: `/serverinfo`, `/userinfo`, `/ping`",
                 "**Moderasi**: `/purge`, `/kick`, `/ban`, `/unban`, `/timeout`, `/untimeout`",
                 "**Channel**: `/lock`, `/unlock`, `/slowmode`, `/announce`, `/channel_create`, `/channel_delete`, `/channel_rename`",
+                "**Voice**: `/voice_join`, `/voice_create`",
                 "**Role**: `/role_give`, `/role_take`, `/role_create`, `/role_delete`",
                 "**Log**: `/setlog`",
             ]
@@ -541,6 +623,155 @@ async def announce(interaction: discord.Interaction, channel: discord.TextChanne
     await interaction.followup.send(embed=build_embed("📣 Announced", f"Sent to {channel.mention}"), ephemeral=True)
 
 
+@tree.command(name="voice_join", description="Join ke voice channel")
+@app_commands.describe(channel="Opsional: kosongkan untuk join voice channel yang sedang kamu pakai")
+async def voice_join(interaction: discord.Interaction, channel: Optional[discord.VoiceChannel] = None) -> None:
+    if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message("Command ini hanya untuk server.", ephemeral=True)
+        return
+
+    target_channel = channel
+    if target_channel is None:
+        user_voice = interaction.user.voice
+        if user_voice is None or user_voice.channel is None:
+            await interaction.response.send_message("Kamu harus join voice channel dulu.", ephemeral=True)
+            return
+        if not isinstance(user_voice.channel, discord.VoiceChannel):
+            await interaction.response.send_message("Channel voice kamu tidak valid.", ephemeral=True)
+            return
+        target_channel = user_voice.channel
+
+    if target_channel.guild.id != interaction.guild.id:
+        await interaction.response.send_message("Voice channel harus dari server ini.", ephemeral=True)
+        return
+
+    me = interaction.guild.me or interaction.guild.get_member(client.user.id if client.user else 0)
+    if me is None:
+        await interaction.response.send_message("Gagal membaca permission bot di server ini.", ephemeral=True)
+        return
+    if not target_channel.permissions_for(me).connect:
+        await interaction.response.send_message("Bot tidak punya izin `Connect` ke voice channel itu.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    voice_client = discord.utils.get(client.voice_clients, guild=interaction.guild)
+    try:
+        if voice_client is not None and voice_client.is_connected():
+            if getattr(getattr(voice_client, "channel", None), "id", None) == target_channel.id:
+                await interaction.followup.send(
+                    embed=build_embed("🔊 Voice", f"Bot sudah ada di {target_channel.mention}."),
+                    ephemeral=True,
+                )
+                return
+            await voice_client.move_to(target_channel)
+        else:
+            await target_channel.connect(self_deaf=True)
+    except discord.Forbidden:
+        await interaction.followup.send("Bot tidak punya izin join voice channel itu.", ephemeral=True)
+        return
+    except Exception as exc:
+        await interaction.followup.send(f"Gagal join voice: {exc}", ephemeral=True)
+        return
+
+    await interaction.followup.send(
+        embed=build_embed("🔊 Voice Joined", f"Bot join ke {target_channel.mention}."),
+        ephemeral=True,
+    )
+
+
+@tree.command(name="voice_create", description="Buat voice channel sementara")
+@app_commands.describe(
+    name="Nama voice channel",
+    privacy="Public bisa diakses semua, private hanya untuk pembuat channel",
+    category="Opsional: kategori tempat channel dibuat",
+)
+@app_commands.choices(
+    privacy=[
+        app_commands.Choice(name="public", value="public"),
+        app_commands.Choice(name="private", value="private"),
+    ]
+)
+async def voice_create(
+    interaction: discord.Interaction,
+    name: str,
+    privacy: app_commands.Choice[str],
+    category: Optional[discord.CategoryChannel] = None,
+) -> None:
+    if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message("Command ini hanya untuk server.", ephemeral=True)
+        return
+    if not has_perm(interaction, "manage_channels"):
+        await interaction.response.send_message("Butuh permission `Manage Channels`.", ephemeral=True)
+        return
+
+    channel_name = name.strip()
+    if not channel_name:
+        await interaction.response.send_message("Nama voice channel tidak boleh kosong.", ephemeral=True)
+        return
+    if len(channel_name) > 100:
+        await interaction.response.send_message("Nama voice channel maksimal 100 karakter.", ephemeral=True)
+        return
+
+    overwrites: dict[discord.abc.Snowflake, discord.PermissionOverwrite] = {}
+    me = interaction.guild.me or interaction.guild.get_member(client.user.id if client.user else 0)
+    if privacy.value == "private":
+        overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(
+            view_channel=False,
+            connect=False,
+        )
+        overwrites[interaction.user] = discord.PermissionOverwrite(
+            view_channel=True,
+            connect=True,
+            speak=True,
+            stream=True,
+            use_voice_activation=True,
+        )
+        if me is not None:
+            overwrites[me] = discord.PermissionOverwrite(
+                view_channel=True,
+                connect=True,
+                manage_channels=True,
+            )
+    else:
+        overwrites[interaction.guild.default_role] = discord.PermissionOverwrite(
+            view_channel=True,
+            connect=True,
+        )
+
+    await interaction.response.defer(ephemeral=True)
+    try:
+        voice_channel = await interaction.guild.create_voice_channel(
+            name=channel_name,
+            category=category,
+            overwrites=overwrites,
+            reason=f"Temporary voice created by {interaction.user}",
+        )
+    except discord.Forbidden:
+        await interaction.followup.send("Bot tidak punya izin `Manage Channels` untuk membuat voice channel.", ephemeral=True)
+        return
+    except Exception as exc:
+        await interaction.followup.send(f"Gagal create voice channel: {exc}", ephemeral=True)
+        return
+
+    add_temp_voice_channel_id(interaction.guild.id, voice_channel.id)
+    privacy_label = "private" if privacy.value == "private" else "public"
+    await interaction.followup.send(
+        embed=build_embed(
+            "✅ Voice Created",
+            f"{voice_channel.mention} dibuat sebagai **{privacy_label}**.\n"
+            "Channel ini akan otomatis dihapus ketika sudah tidak ada user di dalamnya.",
+        ),
+        ephemeral=True,
+    )
+    await send_log(
+        interaction.guild,
+        build_embed(
+            "LOG: Voice Create",
+            f"{interaction.user.mention} membuat voice sementara {voice_channel.mention} ({privacy_label}).",
+        ),
+    )
+
+
 @tree.command(name="role_give", description="Kasih role ke member")
 async def role_give(interaction: discord.Interaction, member: discord.Member, role: discord.Role) -> None:
     if interaction.guild is None or not isinstance(interaction.user, discord.Member):
@@ -798,12 +1029,45 @@ async def setnick(interaction: discord.Interaction, member: discord.Member, nick
     await interaction.response.send_message(embed=build_embed("✅ Nick Updated", f"{member.mention}"), ephemeral=True)
 
 
+async def cleanup_temp_voice_channels() -> None:
+    for guild in client.guilds:
+        for channel_id in list(get_temp_voice_channel_ids(guild.id)):
+            channel = guild.get_channel(channel_id)
+            if channel is None:
+                remove_temp_voice_channel_id(guild.id, channel_id)
+                continue
+            if not isinstance(channel, discord.VoiceChannel):
+                remove_temp_voice_channel_id(guild.id, channel_id)
+                continue
+            await delete_empty_temp_voice_channel(
+                channel,
+                reason="Temporary voice cleanup: no users in channel",
+            )
+
+
+@client.event
+async def on_voice_state_update(
+    member: discord.Member,
+    before: discord.VoiceState,
+    after: discord.VoiceState,
+) -> None:
+    if before.channel is None or before.channel == after.channel:
+        return
+    if not isinstance(before.channel, discord.VoiceChannel):
+        return
+    await delete_empty_temp_voice_channel(
+        before.channel,
+        reason="Temporary voice auto-delete: no users in channel",
+    )
+
+
 @client.event
 async def on_ready() -> None:
     try:
         await tree.sync()
     except Exception as exc:
         print(f"[drxsrvrmanage] Gagal sync command: {exc}")
+    await cleanup_temp_voice_channels()
     print(f"[drxsrvrmanage] Logged in as {client.user}")
     try:
         await client.change_presence(

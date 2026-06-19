@@ -14,7 +14,6 @@ from env_loader import load_env_file
 BASE_DIR = Path(__file__).resolve().parent
 LOG_DIR = BASE_DIR / "log"
 BYPASSDELTA_DIR = BASE_DIR / "bypassdelta"
-FIFA_WORLDCUP_DIR = BASE_DIR / "bot-fifa-worldcup"
 OAUTH_GUARD_DIR = BASE_DIR / "discord-oauth-guard"
 
 PYTHON_BOT_SCRIPTS = [
@@ -27,7 +26,7 @@ PYTHON_BOT_SCRIPTS = [
     "payment_bot.py",
     "script_panel.py",
 ]
-EXTRA_SERVICE_IDS = ["bypassdelta", "bot-fifa-worldcup", "discord-oauth-guard"]
+EXTRA_SERVICE_IDS = ["bypassdelta", "discord-oauth-guard"]
 SERVICE_IDS = PYTHON_BOT_SCRIPTS + EXTRA_SERVICE_IDS
 
 TOKEN_REQUIREMENTS = {
@@ -40,7 +39,6 @@ TOKEN_REQUIREMENTS = {
     "payment_bot.py": ("PAYMENT_BOT_TOKEN",),
     "script_panel.py": ("PANEL_BOT_TOKEN",),
     "bypassdelta": ("BYPASS_DISCORD_TOKEN",),
-    "bot-fifa-worldcup": ("DISCORD_FIFA_TOKEN", "DISCORD_BOT_TOKEN"),
     "discord-oauth-guard": ("DISCORD_TOKEN",),
 }
 
@@ -122,8 +120,6 @@ def _service_from_token(value: str) -> str | None:
     lowered = normalized.lower()
     if lowered in {"bypass", "bypassbot", "bypass_bot", "bypassdelta", "delta"}:
         return "bypassdelta"
-    if lowered in {"fifa", "worldcup", "world-cup", "bot-fifa", "bot-fifa-worldcup"}:
-        return "bot-fifa-worldcup"
     if lowered in {"oauth", "oauth-guard", "discord-oauth", "discord-oauth-guard", "guard"}:
         return "discord-oauth-guard"
 
@@ -262,20 +258,6 @@ def _build_service_command(service_id: str) -> ServiceCommand:
             env=env,
         )
 
-    if service_id == "bot-fifa-worldcup":
-        env.setdefault("NODE_ENV", "production" if os.getenv("RAILWAY_ENVIRONMENT") else "development")
-        persistent_data_dir = os.getenv("PERSISTENT_DATA_DIR", "").strip()
-        if persistent_data_dir:
-            data_dir = Path(persistent_data_dir)
-            if not data_dir.is_absolute():
-                data_dir = BASE_DIR / data_dir
-            env.setdefault("FIFA_DB_PATH", str(data_dir / "bot-fifa-worldcup-db.json"))
-        return ServiceCommand(
-            command=[_npm_executable(), "start"],
-            cwd=FIFA_WORLDCUP_DIR,
-            env=env,
-        )
-
     if service_id == "discord-oauth-guard":
         env.setdefault("NODE_ENV", "production" if os.getenv("RAILWAY_ENVIRONMENT") else "development")
         return ServiceCommand(
@@ -292,8 +274,6 @@ def _service_exists(service_id: str) -> bool:
         return (BASE_DIR / service_id).exists()
     if service_id == "bypassdelta":
         return (BYPASSDELTA_DIR / "package.json").exists()
-    if service_id == "bot-fifa-worldcup":
-        return (FIFA_WORLDCUP_DIR / "package.json").exists()
     if service_id == "discord-oauth-guard":
         return (OAUTH_GUARD_DIR / "package.json").exists()
     return False
