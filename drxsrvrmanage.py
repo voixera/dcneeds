@@ -139,8 +139,8 @@ def build_embed(title: str, description: str) -> discord.Embed:
     return embed
 
 
-def has_human_members(channel: discord.VoiceChannel) -> bool:
-    return any(not member.bot for member in channel.members)
+def is_voice_channel_empty(channel: discord.VoiceChannel) -> bool:
+    return len(channel.members) == 0
 
 
 class ConfirmView(discord.ui.View):
@@ -206,7 +206,7 @@ tree = app_commands.CommandTree(client)
 async def delete_empty_temp_voice_channel(channel: discord.VoiceChannel, reason: str) -> bool:
     if not is_temp_voice_channel(channel.guild.id, channel.id):
         return False
-    if has_human_members(channel):
+    if not is_voice_channel_empty(channel):
         return False
 
     channel_name = channel.name
@@ -759,7 +759,7 @@ async def voice_create(
         embed=build_embed(
             "✅ Voice Created",
             f"{voice_channel.mention} dibuat sebagai **{privacy_label}**.\n"
-            "Channel ini akan otomatis dihapus ketika sudah tidak ada user di dalamnya.",
+            "Channel ini akan otomatis dihapus ketika sudah benar-benar kosong.",
         ),
         ephemeral=True,
     )
@@ -1041,7 +1041,7 @@ async def cleanup_temp_voice_channels() -> None:
                 continue
             await delete_empty_temp_voice_channel(
                 channel,
-                reason="Temporary voice cleanup: no users in channel",
+                reason="Temporary voice cleanup: empty channel",
             )
 
 
@@ -1057,7 +1057,7 @@ async def on_voice_state_update(
         return
     await delete_empty_temp_voice_channel(
         before.channel,
-        reason="Temporary voice auto-delete: no users in channel",
+        reason="Temporary voice auto-delete: empty channel",
     )
 
 
