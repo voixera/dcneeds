@@ -21,6 +21,8 @@ TOKEN = (
 CONFIG_FILE = Path(os.getenv("SRVRMANAGE_CONFIG_FILE") or "srvrmanage_config.json")
 EMBED_COLOR = discord.Color.from_rgb(32, 34, 37)
 TEMP_VOICE_CHANNEL_IDS_KEY = "temp_voice_channel_ids"
+VOICE_MUTED_MEMBER_IDS_KEY = "voice_muted_member_ids"
+VOICE_DEAFENED_MEMBER_IDS_KEY = "voice_deafened_member_ids"
 
 
 def _safe_int(value) -> Optional[int]:
@@ -68,29 +70,37 @@ def set_log_channel_id(guild_id: int, channel_id: Optional[int]) -> None:
     save_config(data)
 
 
-def get_temp_voice_channel_ids(guild_id: int) -> set[int]:
+def get_guild_id_set(guild_id: int, config_key: str) -> set[int]:
     data = load_config()
     cfg = data.get(str(guild_id))
     if not isinstance(cfg, dict):
         return set()
-    raw_ids = cfg.get(TEMP_VOICE_CHANNEL_IDS_KEY, [])
+    raw_ids = cfg.get(config_key, [])
     if not isinstance(raw_ids, list):
         return set()
     return {channel_id for channel_id in (_safe_int(value) for value in raw_ids) if channel_id is not None}
 
 
-def set_temp_voice_channel_ids(guild_id: int, channel_ids: set[int]) -> None:
+def set_guild_id_set(guild_id: int, config_key: str, ids: set[int]) -> None:
     data = load_config()
     key = str(guild_id)
     cfg = data.get(key)
     if not isinstance(cfg, dict):
         cfg = {}
         data[key] = cfg
-    if channel_ids:
-        cfg[TEMP_VOICE_CHANNEL_IDS_KEY] = sorted(channel_ids)
+    if ids:
+        cfg[config_key] = sorted(ids)
     else:
-        cfg.pop(TEMP_VOICE_CHANNEL_IDS_KEY, None)
+        cfg.pop(config_key, None)
     save_config(data)
+
+
+def get_temp_voice_channel_ids(guild_id: int) -> set[int]:
+    return get_guild_id_set(guild_id, TEMP_VOICE_CHANNEL_IDS_KEY)
+
+
+def set_temp_voice_channel_ids(guild_id: int, channel_ids: set[int]) -> None:
+    set_guild_id_set(guild_id, TEMP_VOICE_CHANNEL_IDS_KEY, channel_ids)
 
 
 def add_temp_voice_channel_id(guild_id: int, channel_id: int) -> None:
@@ -185,6 +195,29 @@ def can_manage_target(invoker: discord.Member, target: discord.Member) -> bool:
     return invoker.top_role > target.top_role
 
 
+def get_bot_member(guild: discord.Guild) -> Optional[discord.Member]:
+    return guild.me or guild.get_member(client.user.id if client.user else 0)
+
+
+def bot_has_perm(guild: discord.Guild, perm_name: str) -> bool:
+    me = get_bot_member(guild)
+    if me is None:
+        return False
+    perms = me.guild_permissions
+    return bool(getattr(perms, perm_name, False) or perms.administrator)
+
+
+def can_bot_manage_target(guild: discord.Guild, target: discord.Member) -> bool:
+    me = get_bot_member(guild)
+    if me is None:
+        return False
+    if target.id == me.id:
+        return True
+    if target.guild.owner_id == target.id:
+        return False
+    return me.top_role > target.top_role
+
+
 def can_bot_manage_role(guild: discord.Guild, role: discord.Role) -> bool:
     me = guild.me
     if me is None:
@@ -244,7 +277,7 @@ async def srv_help(interaction: discord.Interaction) -> None:
         "\n".join(
             [
                 "**Info**: `/serverinfo`, `/userinfo`, `/ping`",
-                "**Moderasi**: `/purge`, `/kick`, `/ban`, `/unban`, `/timeout`, `/untimeout`",
+                "**Moderasi**: `/purge`, `/kick`, `/ban`, `/unban`, `/timeout`, `/untimeout`, `/mute`, `/unmute`, `/deafen`, `/undeafen`",
                 "**Channel**: `/lock`, `/unlock`, `/slowmode`, `/announce`, `/channel_create`, `/channel_delete`, `/channel_rename`",
                 "**Voice**: `/voice_join`, `/voice_create`",
                 "**Role**: `/role_give`, `/role_take`, `/role_create`, `/role_delete`",
@@ -482,6 +515,110 @@ async def unban(interaction: discord.Interaction, user_id: str, reason: Optional
     )
 
 
+async def apply_stored_voice_moderation(member: discord.Member) -> None:
+    if member.guild is None or member.voice is None or member.voice.channel is None:
+        return
+
+    muted_ids = get_guild_id_set(member.guild.id, VOICE_MUTED_MEMBER_IDS_KEY)
+    deafened_ids = get_guild_id_set(member.guild.id, VOICE_DEAFENED_MEMBER_IDS_KEY)
+    update: dict[str, bool] = {}
+
+    if member.id in muted_ids and not member.voice.mute:
+        update["mute"] = True
+    if member.id in deafened_ids and not member.voice.deaf:
+        update["deafen"] = True
+    if not update:
+        return
+
+    try:
+        await member.edit(**update, reason="Stored voice moderation apply")
+    except discord.Forbidden:
+        print(f"[drxsrvrmanage] Tidak bisa apply voice moderation ke {member}: missing permission / role hierarchy")
+    except Exception as exc:
+        print(f"[drxsrvrmanage] Gagal apply voice moderation ke {member}: {exc}")
+
+
+async def set_member_voice_moderation(
+    interaction: discord.Interaction,
+    member: discord.Member,
+    *,
+    config_key: str,
+    edit_key: str,
+    voice_state_key: str,
+    enabled: bool,
+    permission_name: str,
+    permission_label: str,
+    action_label: str,
+    reason: Optional[str] = None,
+) -> None:
+    if interaction.guild is None or not isinstance(interaction.user, discord.Member):
+        await interaction.response.send_message("Command ini hanya untuk server.", ephemeral=True)
+        return
+    if not has_perm(interaction, permission_name):
+        await interaction.response.send_message(f"Butuh permission `{permission_label}`.", ephemeral=True)
+        return
+    if not bot_has_perm(interaction.guild, permission_name):
+        await interaction.response.send_message(f"Bot tidak punya permission `{permission_label}`.", ephemeral=True)
+        return
+    if member.id == interaction.user.id:
+        await interaction.response.send_message("Tidak bisa menjalankan aksi ini ke diri sendiri.", ephemeral=True)
+        return
+    if not can_manage_target(interaction.user, member):
+        await interaction.response.send_message("Kamu tidak bisa manage member ini (role hierarchy).", ephemeral=True)
+        return
+    if not can_bot_manage_target(interaction.guild, member):
+        await interaction.response.send_message("Bot tidak bisa manage member ini. Naikkan posisi role bot.", ephemeral=True)
+        return
+
+    voice_state = member.voice
+    is_in_voice = voice_state is not None and voice_state.channel is not None
+    applied_now = False
+    if is_in_voice and bool(getattr(voice_state, voice_state_key, False)) != enabled:
+        try:
+            await member.edit(**{edit_key: enabled}, reason=reason or f"{action_label} by {interaction.user}")
+            applied_now = True
+        except discord.Forbidden:
+            await interaction.response.send_message(
+                f"Discord menolak aksi ini. Cek permission `{permission_label}` dan role hierarchy bot.",
+                ephemeral=True,
+            )
+            return
+        except Exception as exc:
+            await interaction.response.send_message(f"Gagal {action_label.lower()} member: {exc}", ephemeral=True)
+            return
+    elif is_in_voice:
+        applied_now = True
+
+    member_ids = get_guild_id_set(interaction.guild.id, config_key)
+    if enabled:
+        member_ids.add(member.id)
+    else:
+        member_ids.discard(member.id)
+    set_guild_id_set(interaction.guild.id, config_key, member_ids)
+
+    if enabled:
+        description = (
+            f"{member.mention} berhasil di-{action_label.lower()}."
+            if applied_now
+            else f"{member.mention} disimpan untuk otomatis di-{action_label.lower()} saat masuk voice."
+        )
+    else:
+        description = (
+            f"{member.mention} berhasil di-{action_label.lower()}."
+            if applied_now
+            else f"{member.mention} dihapus dari daftar {action_label.lower()} otomatis."
+        )
+
+    await interaction.response.send_message(embed=build_embed(f"✅ {action_label}", description), ephemeral=True)
+    await send_log(
+        interaction.guild,
+        build_embed(
+            f"LOG: {action_label}",
+            f"{interaction.user.mention} {action_label.lower()} `{member}`. Reason: `{reason or '-'}`",
+        ),
+    )
+
+
 @tree.command(name="timeout", description="Timeout member (mute sementara)")
 @app_commands.describe(minutes="Durasi timeout (1-10080 menit)")
 async def timeout(
@@ -540,6 +677,70 @@ async def untimeout(interaction: discord.Interaction, member: discord.Member, re
     await send_log(
         interaction.guild,
         build_embed("LOG: Untimeout", f"{interaction.user.mention} untimeout `{member}`. Reason: `{reason or '-'}`"),
+    )
+
+
+@tree.command(name="mute", description="Server mute member")
+async def mute(interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None) -> None:
+    await set_member_voice_moderation(
+        interaction,
+        member,
+        config_key=VOICE_MUTED_MEMBER_IDS_KEY,
+        edit_key="mute",
+        voice_state_key="mute",
+        enabled=True,
+        permission_name="mute_members",
+        permission_label="Mute Members",
+        action_label="Mute",
+        reason=reason,
+    )
+
+
+@tree.command(name="unmute", description="Hapus server mute member")
+async def unmute(interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None) -> None:
+    await set_member_voice_moderation(
+        interaction,
+        member,
+        config_key=VOICE_MUTED_MEMBER_IDS_KEY,
+        edit_key="mute",
+        voice_state_key="mute",
+        enabled=False,
+        permission_name="mute_members",
+        permission_label="Mute Members",
+        action_label="Unmute",
+        reason=reason,
+    )
+
+
+@tree.command(name="deafen", description="Server deafen member")
+async def deafen(interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None) -> None:
+    await set_member_voice_moderation(
+        interaction,
+        member,
+        config_key=VOICE_DEAFENED_MEMBER_IDS_KEY,
+        edit_key="deafen",
+        voice_state_key="deaf",
+        enabled=True,
+        permission_name="deafen_members",
+        permission_label="Deafen Members",
+        action_label="Deafen",
+        reason=reason,
+    )
+
+
+@tree.command(name="undeafen", description="Hapus server deafen member")
+async def undeafen(interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None) -> None:
+    await set_member_voice_moderation(
+        interaction,
+        member,
+        config_key=VOICE_DEAFENED_MEMBER_IDS_KEY,
+        edit_key="deafen",
+        voice_state_key="deaf",
+        enabled=False,
+        permission_name="deafen_members",
+        permission_label="Deafen Members",
+        action_label="Undeafen",
+        reason=reason,
     )
 
 
@@ -1051,6 +1252,9 @@ async def on_voice_state_update(
     before: discord.VoiceState,
     after: discord.VoiceState,
 ) -> None:
+    if after.channel is not None:
+        await apply_stored_voice_moderation(member)
+
     if before.channel is None or before.channel == after.channel:
         return
     if not isinstance(before.channel, discord.VoiceChannel):
