@@ -1276,7 +1276,7 @@ async def on_ready() -> None:
     try:
         await client.change_presence(
             status=discord.Status.dnd,
-            activity=discord.CustomActivity(name="Made with ❤️ by DrxDvs"),
+            activity=discord.CustomActivity(name="Made with ❤️ by voixera"),
         )
     except Exception:
         pass
