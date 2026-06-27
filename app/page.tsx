@@ -33,14 +33,8 @@ type StatusPayload = {
 };
 
 const botLabels: Record<string, string> = {
-  bot: "Main Bot",
   drxfarm: "Farm Live",
-  drxmusic: "Music",
-  drxrolemanage: "Role Manager",
   drxsrvrmanage: "Server Manager",
-  key_bot: "Key Bot",
-  payment_bot: "Payment",
-  script_panel: "Script Panel",
 };
 
 export default function Home() {

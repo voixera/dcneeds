@@ -15,14 +15,8 @@ from env_loader import load_env_file
 BASE_DIR = Path(__file__).resolve().parent
 LOG_DIR = BASE_DIR / "log"
 BOT_SCRIPTS = [
-    "bot.py",
-    "drxfarm.py",
-    "drxmusic.py",
-    "drxrolemanage.py",
     "drxsrvrmanage.py",
-    "key_bot.py",
-    "payment_bot.py",
-    "script_panel.py",
+    "drxfarm.py",
 ]
 
 load_env_file()

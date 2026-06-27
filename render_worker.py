@@ -13,44 +13,23 @@ from env_loader import load_env_file
 
 BASE_DIR = Path(__file__).resolve().parent
 LOG_DIR = BASE_DIR / "log"
-BYPASSDELTA_DIR = BASE_DIR / "bypassdelta"
 OAUTH_GUARD_DIR = BASE_DIR / "discord-oauth-guard"
 
 PYTHON_BOT_SCRIPTS = [
-    "bot.py",
-    "drxfarm.py",
-    "drxmusic.py",
-    "drxrolemanage.py",
     "drxsrvrmanage.py",
-    "key_bot.py",
-    "payment_bot.py",
-    "script_panel.py",
+    "drxfarm.py",
 ]
-EXTRA_SERVICE_IDS = ["bypassdelta", "discord-oauth-guard"]
+EXTRA_SERVICE_IDS = ["discord-oauth-guard"]
 SERVICE_IDS = PYTHON_BOT_SCRIPTS + EXTRA_SERVICE_IDS
 LOW_MEMORY_SERVICE_PRIORITY = [
-    "discord-oauth-guard",
     "drxsrvrmanage.py",
-    "bot.py",
-    "drxmusic.py",
     "drxfarm.py",
-    "drxrolemanage.py",
-    "key_bot.py",
-    "payment_bot.py",
-    "script_panel.py",
-    "bypassdelta",
+    "discord-oauth-guard",
 ]
 
 TOKEN_REQUIREMENTS = {
-    "bot.py": ("DISCORD_BOT_TOKEN",),
-    "drxfarm.py": ("DISCORD_FARM_TOKEN", "DISCORD_BOT_TOKEN", "DISCORD_MUSIC_TOKEN"),
-    "drxmusic.py": ("DISCORD_MUSIC_TOKEN", "MUSIC_BOT_TOKEN", "DISCORD_BOT_TOKEN"),
-    "drxrolemanage.py": ("DISCORD_BOT_TOKEN",),
-    "drxsrvrmanage.py": ("DISCORD_SRVRMANAGE_TOKEN", "DISCORD_SERVERMANAGE_TOKEN", "DISCORD_BOT_TOKEN"),
-    "key_bot.py": ("KEY_BOT_TOKEN",),
-    "payment_bot.py": ("PAYMENT_BOT_TOKEN",),
-    "script_panel.py": ("PANEL_BOT_TOKEN",),
-    "bypassdelta": ("BYPASS_DISCORD_TOKEN",),
+    "drxfarm.py": ("DISCORD_FARM_TOKEN",),
+    "drxsrvrmanage.py": ("DISCORD_SRVRMANAGE_TOKEN", "DISCORD_SERVERMANAGE_TOKEN"),
     "discord-oauth-guard": ("DISCORD_TOKEN",),
 }
 
@@ -60,9 +39,7 @@ DATA_FILE_DEFAULTS = {
     "keys.json": "{}\n",
     "payment_tickets.json": '{\n  "user_tickets": {},\n  "channels": {}\n}\n',
 }
-DATA_DIR_LINKS = {
-    "bypassdelta/.tmp": "bypassdelta_tmp",
-}
+DATA_DIR_LINKS = {}
 
 
 @dataclass(frozen=True)
@@ -134,9 +111,7 @@ def _service_from_token(value: str) -> str | None:
         return candidate
 
     lowered = normalized.lower()
-    if lowered in {"bypass", "bypassbot", "bypass_bot", "bypassdelta", "delta"}:
-        return "bypassdelta"
-    if lowered in {"oauth", "oauth-guard", "discord-oauth", "discord-oauth-guard", "guard"}:
+    if lowered in {"oauth", "oauthguard", "oauth-guard", "discord-oauth", "discord-oauth-guard", "guard"}:
         return "discord-oauth-guard"
 
     for script_name in PYTHON_BOT_SCRIPTS:
@@ -168,7 +143,7 @@ def _apply_low_memory_limit(services: list[str], reason: str) -> list[str]:
     if not low_memory or allow_multi_bot:
         return services
 
-    max_services = max(1, _int_env("MAX_RUNNING_BOTS", 1))
+    max_services = max(1, _int_env("MAX_RUNNING_BOTS", len(SERVICE_IDS)))
     if len(services) <= max_services:
         return services
 
@@ -303,14 +278,6 @@ def _build_service_command(service_id: str) -> ServiceCommand:
             env=env,
         )
 
-    if service_id == "bypassdelta":
-        env.setdefault("NODE_ENV", "production" if os.getenv("RAILWAY_ENVIRONMENT") else "development")
-        return ServiceCommand(
-            command=[_npm_executable(), "start"],
-            cwd=BYPASSDELTA_DIR,
-            env=env,
-        )
-
     if service_id == "discord-oauth-guard":
         env.setdefault("NODE_ENV", "production" if os.getenv("RAILWAY_ENVIRONMENT") else "development")
         return ServiceCommand(
@@ -325,8 +292,6 @@ def _build_service_command(service_id: str) -> ServiceCommand:
 def _service_exists(service_id: str) -> bool:
     if service_id in PYTHON_BOT_SCRIPTS:
         return (BASE_DIR / service_id).exists()
-    if service_id == "bypassdelta":
-        return (BYPASSDELTA_DIR / "package.json").exists()
     if service_id == "discord-oauth-guard":
         return (OAUTH_GUARD_DIR / "package.json").exists()
     return False

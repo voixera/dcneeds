@@ -21,9 +21,6 @@ RUN apt-get update \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY bypassdelta/package*.json ./bypassdelta/
-RUN cd bypassdelta && npm ci
-
 COPY discord-oauth-guard/package*.json ./discord-oauth-guard/
 RUN cd discord-oauth-guard && npm ci
 

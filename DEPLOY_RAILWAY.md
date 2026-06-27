@@ -1,4 +1,4 @@
-# Deploy Gabungan ke Railway
+# Deploy ke Railway
 
 Setup ini memakai satu Docker container dan satu launcher:
 
@@ -6,61 +6,55 @@ Setup ini memakai satu Docker container dan satu launcher:
 python render_worker.py
 ```
 
-Launcher menjalankan bot Python di root project dan bot TypeScript di `bypassdelta/`.
+Launcher hanya menjalankan tiga service:
+
+- `drxsrvrmanage.py`
+- `drxfarm.py`
+- `discord-oauth-guard`
 
 ## Railway
 
 1. Push repo ini ke GitHub.
 2. Buat project baru di Railway dari GitHub repo.
-3. Railway akan memakai `railway.json` dan `Dockerfile`.
+3. Railway memakai `railway.json` dan `Dockerfile`.
 4. Isi environment variables di Railway.
-
-Railway memakai `CMD`/start command Dockerfile saat deploy berbasis Dockerfile. `railway.json` juga mengunci start command ke `python render_worker.py`.
 
 ## Environment Wajib
 
-Isi token sesuai bot yang mau dijalankan:
+Isi token untuk tiga service yang dipakai:
 
 ```env
-DISCORD_BOT_TOKEN=
-DISCORD_MUSIC_TOKEN=
-DISCORD_FARM_TOKEN=
 DISCORD_SRVRMANAGE_TOKEN=
-KEY_BOT_TOKEN=
-PAYMENT_BOT_TOKEN=
-PANEL_BOT_TOKEN=
-BYPASS_DISCORD_TOKEN=
-BYPASS_CLIENT_ID=
+DISCORD_FARM_TOKEN=
+DISCORD_TOKEN=
+CLIENT_ID=
+GUILD_ID=
 ```
 
-Kalau hanya mau menjalankan beberapa bot:
+Gunakan daftar service ini:
 
 ```env
-ENABLED_BOTS=bot,drxmusic,bypassdelta
-```
-
-Railway plan kecil mudah terkena exit code `137` kalau terlalu banyak bot jalan dalam satu container. Default launcher sekarang memakai low-memory mode saat `ENABLED_BOTS` kosong atau `all` di hosting:
-
-```env
-ENABLED_BOTS=
-LOW_MEMORY_MODE=true
-PRIMARY_BOT=drxsrvrmanage
-MAX_RUNNING_BOTS=1
-```
-
-Untuk menjalankan beberapa bot sekaligus, naikkan resource Railway lalu aktifkan:
-
-```env
+ENABLED_BOTS=drxsrvrmanage,drxfarm,oauthguard
 ALLOW_MULTI_BOT=true
-# atau
-LOW_MEMORY_MODE=false
+MAX_RUNNING_BOTS=3
+SKIP_MISSING_BOT_TOKENS=true
+RESTART_FAILED_BOTS=true
+RESTART_DELAY_SECONDS=10
 ```
 
-Kalau `ENABLED_BOTS=all`, launcher akan mencoba semua service tetapi skip yang tokennya kosong karena:
+Jika Railway plan kecil masih terkena exit code `137`, turunkan sementara:
 
 ```env
-SKIP_MISSING_BOT_TOKENS=true
+MAX_RUNNING_BOTS=2
 ```
+
+atau jalankan satu service saja:
+
+```env
+ENABLED_BOTS=drxsrvrmanage
+```
+
+## OAuth Guard
 
 Untuk `discord-oauth-guard`, OCR/Tesseract bisa boros RAM. Di Railway kecil, gunakan:
 
@@ -70,31 +64,11 @@ OCR_MAX_CONCURRENT=1
 OCR_IMAGE_MAX_DIMENSION=960
 ```
 
-## Bypass Delta
+Slash command OAuth Guard tetap perlu didaftarkan dari folder `discord-oauth-guard`:
 
-Sub-app berada di:
-
-```text
-bypassdelta/
+```bash
+npm run deploy:commands
 ```
-
-Env yang dipakai:
-
-```env
-BYPASS_DISCORD_TOKEN=
-BYPASS_CLIENT_ID=
-BYPASS_API_URL=http://127.0.0.1:8787/bypass
-BYPASS_API_KEY=dev-local-key
-BYPASS_ENABLE_MESSAGE_CONTENT=true
-BYPASS_DISABLE_DIRECT_LOOKUP=false
-AUTHORIZED_USER_IDS=
-MOCK_BYPASS_API_AUTOSTART=true
-MOCK_BYPASS_API_KEY=dev-local-key
-MOCK_BYPASS_API_HOST=127.0.0.1
-MOCK_BYPASS_API_PORT=8787
-```
-
-`MOCK_BYPASS_API_*` menjalankan API lokal di container yang sama untuk mode testing. Kalau nanti memakai provider bypass asli, ganti `BYPASS_API_URL` dan `BYPASS_API_KEY`, lalu set `MOCK_BYPASS_API_AUTOSTART=false`.
 
 ## Persistent Data
 
@@ -110,13 +84,3 @@ Launcher akan mengarahkan data ini ke volume:
 - `farm_whitelist.json`
 - `keys.json`
 - `payment_tickets.json`
-- `bypassdelta/.tmp`
-
-## Import Source
-
-Kode `bypassdelta/` diimport dari:
-
-```text
-https://github.com/voixera/bypassdelta
-commit df313e458c20893c3c2a223e1238682271787665
-```

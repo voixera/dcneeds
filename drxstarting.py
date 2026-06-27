@@ -1,4 +1,5 @@
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -10,17 +11,13 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent
 ENV_FILE = BASE_DIR / ".env"
 LOG_DIR = BASE_DIR / "log"
+OAUTH_GUARD_DIR = BASE_DIR / "discord-oauth-guard"
 _LOG_LOCK = threading.Lock()
 BOT_SCRIPTS = [
-    "bot.py",
-    "drxfarm.py",
-    "drxmusic.py",
-    "drxrolemanage.py",
     "drxsrvrmanage.py",
-    "key_bot.py",
-    "payment_bot.py",
-    "script_panel.py",
+    "drxfarm.py",
 ]
+NODE_SERVICES = ["discord-oauth-guard"]
 
 
 def _daily_log_path(now: datetime | None = None) -> Path:
@@ -81,6 +78,20 @@ def terminate_process(process: subprocess.Popen) -> None:
         process.wait(timeout=5)
 
 
+def _npm_executable() -> str:
+    if os.name == "nt":
+        return shutil.which("npm.cmd") or shutil.which("npm") or "npm.cmd"
+    return shutil.which("npm") or "npm"
+
+
+def _service_command(service_name: str) -> tuple[list[str], Path] | None:
+    if service_name == "discord-oauth-guard":
+        if not (OAUTH_GUARD_DIR / "package.json").exists():
+            return None
+        return [_npm_executable(), "start"], OAUTH_GUARD_DIR
+    return None
+
+
 def main() -> int:
     env = os.environ.copy()
     env.update(load_env_file(ENV_FILE))
@@ -88,15 +99,25 @@ def main() -> int:
     processes: list[tuple[str, subprocess.Popen]] = []
     output_threads: list[threading.Thread] = []
 
+    service_commands: list[tuple[str, list[str], Path]] = []
     for script_name in BOT_SCRIPTS:
         script_path = BASE_DIR / script_name
-        if not script_path.exists():
+        if script_path.exists():
+            service_commands.append((script_name, [sys.executable, "-u", str(script_path)], BASE_DIR))
+        else:
             _log_launcher(f"Skip, file tidak ditemukan: {script_name}")
-            continue
 
+    for service_name in NODE_SERVICES:
+        command = _service_command(service_name)
+        if command is None:
+            _log_launcher(f"Skip, service tidak ditemukan: {service_name}")
+            continue
+        service_commands.append((service_name, command[0], command[1]))
+
+    for service_name, command, cwd in service_commands:
         process = subprocess.Popen(
-            [sys.executable, "-u", str(script_path)],
-            cwd=str(BASE_DIR),
+            command,
+            cwd=str(cwd),
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -105,22 +126,22 @@ def main() -> int:
             errors="replace",
             creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
         )
-        processes.append((script_name, process))
+        processes.append((service_name, process))
 
         stdout_thread = threading.Thread(
             target=stream_output,
-            args=(script_name, process.stdout, sys.stdout),
+            args=(service_name, process.stdout, sys.stdout),
             daemon=True,
         )
         stderr_thread = threading.Thread(
             target=stream_output,
-            args=(f"{script_name}:ERR", process.stderr, sys.stderr),
+            args=(f"{service_name}:ERR", process.stderr, sys.stderr),
             daemon=True,
         )
         stdout_thread.start()
         stderr_thread.start()
         output_threads.extend([stdout_thread, stderr_thread])
-        _log_launcher(f"Menjalankan {script_name} (PID {process.pid})")
+        _log_launcher(f"Menjalankan {service_name} (PID {process.pid})")
 
     if not processes:
         _log_launcher("Tidak ada bot yang dijalankan.")
