@@ -43,5 +43,7 @@ module.exports = {
   spamChannelThreshold: toInt(process.env.SPAM_CHANNEL_THRESHOLD, 3),
   massMentionThreshold: toInt(process.env.MASS_MENTION_THRESHOLD, 5),
   voiceNotifyChannelId: process.env.VOICE_NOTIFY_CHANNEL_ID || null,
-  voiceReconnectDelayMs: toInt(process.env.VOICE_RECONNECT_DELAY_MS, 5000)
+  voiceReconnectDelayMs: toInt(process.env.VOICE_RECONNECT_DELAY_MS, 5000),
+  discordLoginRetryBufferMs: toInt(process.env.DISCORD_LOGIN_RETRY_BUFFER_MS, 5000),
+  discordLoginMaxRetries: toInt(process.env.DISCORD_LOGIN_MAX_RETRIES, 0)
 };
