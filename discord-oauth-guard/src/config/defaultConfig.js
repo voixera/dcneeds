@@ -40,8 +40,11 @@ module.exports = {
     allowedContentTypes: new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'])
   },
   ocr: {
+    enabled: env.ocrEnabled,
     language: env.ocrLanguage,
-    timeoutMs: env.ocrTimeoutMs
+    timeoutMs: env.ocrTimeoutMs,
+    maxConcurrent: env.ocrMaxConcurrent,
+    imageMaxDimension: env.ocrImageMaxDimension
   },
   spam: {
     windowMs: env.spamWindowSeconds * second,

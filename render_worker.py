@@ -28,6 +28,18 @@ PYTHON_BOT_SCRIPTS = [
 ]
 EXTRA_SERVICE_IDS = ["bypassdelta", "discord-oauth-guard"]
 SERVICE_IDS = PYTHON_BOT_SCRIPTS + EXTRA_SERVICE_IDS
+LOW_MEMORY_SERVICE_PRIORITY = [
+    "discord-oauth-guard",
+    "drxsrvrmanage.py",
+    "bot.py",
+    "drxmusic.py",
+    "drxfarm.py",
+    "drxrolemanage.py",
+    "key_bot.py",
+    "payment_bot.py",
+    "script_panel.py",
+    "bypassdelta",
+]
 
 TOKEN_REQUIREMENTS = {
     "bot.py": ("DISCORD_BOT_TOKEN",),
@@ -80,6 +92,10 @@ def _int_env(name: str, default: int) -> int:
         return default
 
 
+def _is_hosted_runtime() -> bool:
+    return bool(os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER") or os.getenv("RENDER_SERVICE_NAME"))
+
+
 def _daily_log_path(now: datetime | None = None) -> Path:
     when = now or datetime.now()
     return LOG_DIR / f"{when.strftime('%d.%m.%Y')}Launcher.log"
@@ -129,17 +145,54 @@ def _service_from_token(value: str) -> str | None:
     return None
 
 
+def _choose_low_memory_service(services: list[str]) -> str:
+    for env_name in ("PRIMARY_BOT", "RAILWAY_SERVICE_NAME", "RENDER_SERVICE_NAME", "SERVICE_NAME"):
+        service_id = _service_from_token(os.getenv(env_name, ""))
+        if service_id in services:
+            return service_id
+
+    token_ready_services = [service_id for service_id in services if _has_required_token(service_id)]
+    candidates = token_ready_services or services
+
+    for service_id in LOW_MEMORY_SERVICE_PRIORITY:
+        if service_id in candidates:
+            return service_id
+
+    return candidates[0]
+
+
+def _apply_low_memory_limit(services: list[str], reason: str) -> list[str]:
+    low_memory = _flag("LOW_MEMORY_MODE", default=_is_hosted_runtime())
+    allow_multi_bot = _flag("ALLOW_MULTI_BOT", default=False)
+
+    if not low_memory or allow_multi_bot:
+        return services
+
+    max_services = max(1, _int_env("MAX_RUNNING_BOTS", 1))
+    if len(services) <= max_services:
+        return services
+
+    primary = _choose_low_memory_service(services)
+    remaining = [service_id for service_id in services if service_id != primary]
+    limited = [primary] + remaining[: max_services - 1]
+    _log(
+        f"LOW_MEMORY_MODE aktif ({reason}); menjalankan {', '.join(limited)} saja. "
+        "Set LOW_MEMORY_MODE=false atau ALLOW_MULTI_BOT=true untuk menjalankan lebih banyak service."
+    )
+    return limited
+
+
 def _enabled_services() -> list[str]:
-    raw = os.getenv("ENABLED_BOTS", "all").strip()
+    raw = os.getenv("ENABLED_BOTS", "").strip()
     if not raw:
-        raw = "all"
+        return _apply_low_memory_limit(SERVICE_IDS[:], "ENABLED_BOTS kosong")
 
     selected: list[str] = []
     unknown: list[str] = []
     for part in raw.replace("\n", ",").split(","):
         service_id = _service_from_token(part)
         if service_id == "all":
-            return SERVICE_IDS[:]
+            return _apply_low_memory_limit(SERVICE_IDS[:], "ENABLED_BOTS=all")
         if service_id is None:
             if part.strip():
                 unknown.append(part.strip())
@@ -149,7 +202,7 @@ def _enabled_services() -> list[str]:
 
     if unknown:
         _log(f"ENABLED_BOTS berisi nama tidak dikenal: {', '.join(unknown)}")
-    return selected
+    return _apply_low_memory_limit(selected, "ENABLED_BOTS memilih banyak service")
 
 
 def _has_required_token(service_id: str) -> bool:

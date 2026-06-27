@@ -39,10 +39,35 @@ Kalau hanya mau menjalankan beberapa bot:
 ENABLED_BOTS=bot,drxmusic,bypassdelta
 ```
 
+Railway plan kecil mudah terkena exit code `137` kalau terlalu banyak bot jalan dalam satu container. Default launcher sekarang memakai low-memory mode saat `ENABLED_BOTS` kosong atau `all` di hosting:
+
+```env
+ENABLED_BOTS=
+LOW_MEMORY_MODE=true
+PRIMARY_BOT=drxsrvrmanage
+MAX_RUNNING_BOTS=1
+```
+
+Untuk menjalankan beberapa bot sekaligus, naikkan resource Railway lalu aktifkan:
+
+```env
+ALLOW_MULTI_BOT=true
+# atau
+LOW_MEMORY_MODE=false
+```
+
 Kalau `ENABLED_BOTS=all`, launcher akan mencoba semua service tetapi skip yang tokennya kosong karena:
 
 ```env
 SKIP_MISSING_BOT_TOKENS=true
+```
+
+Untuk `discord-oauth-guard`, OCR/Tesseract bisa boros RAM. Di Railway kecil, gunakan:
+
+```env
+OCR_ENABLED=false
+OCR_MAX_CONCURRENT=1
+OCR_IMAGE_MAX_DIMENSION=960
 ```
 
 ## Bypass Delta
